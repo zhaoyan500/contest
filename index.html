@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>党史知识竞赛</title>
+    <title>张思德传人知识竞赛</title>
     <style>
         /* ===== 全局样式 ===== */
         * {
@@ -101,6 +101,12 @@
             box-shadow: 0 6px 0 #1a4a1a;
             color: #fff;
             border-color: #3a8a3a;
+        }
+        .btn-gold {
+            background: #b8862c;
+            box-shadow: 0 6px 0 #7a5a1a;
+            color: #fff;
+            border-color: #d4a347;
         }
 
         .input-group {
@@ -431,6 +437,11 @@
             padding: 8px 16px;
             border-bottom: 1px solid #e7d4b0;
             font-size: 14px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .rank-item:hover {
+            background: #ebdcc8;
         }
         .rank-item:last-child { border-bottom: none; }
         .rank-item .rank-num {
@@ -447,15 +458,129 @@
             font-weight: 700;
             color: #b8862c;
         }
+        .rank-item .cert-badge {
+            margin-left: 8px;
+            font-size: 16px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .rank-item:hover .cert-badge {
+            opacity: 1;
+        }
         .rank-item.me {
             background: #ebdcc8;
             border-radius: 8px;
+            border-left: 4px solid #b8862c;
         }
         .rank-empty {
             text-align: center;
             color: #7a5f3e;
             padding: 20px 0;
             font-size: 14px;
+        }
+
+        /* ===== 证书弹窗 ===== */
+        .cert-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+        .cert-overlay.show {
+            display: flex;
+        }
+        .cert-card {
+            background: #fef7e6;
+            border-radius: 32px;
+            padding: 32px 28px 28px;
+            max-width: 400px;
+            width: 100%;
+            border: 6px solid #d4a347;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            position: relative;
+            text-align: center;
+        }
+        .cert-card .cert-badge-top {
+            font-size: 56px;
+            margin-bottom: 4px;
+        }
+        .cert-card .cert-title {
+            font-size: 26px;
+            font-weight: 800;
+            color: #7a0f1c;
+            letter-spacing: 4px;
+            margin-bottom: 4px;
+        }
+        .cert-card .cert-subtitle {
+            font-size: 14px;
+            color: #7a5f3e;
+            border-bottom: 2px solid #d4a347;
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+        .cert-card .cert-name {
+            font-size: 32px;
+            font-weight: 700;
+            color: #3e2a1a;
+            margin: 8px 0;
+        }
+        .cert-card .cert-score {
+            font-size: 48px;
+            font-weight: 800;
+            color: #b8862c;
+            background: #3e2a1a;
+            display: inline-block;
+            padding: 4px 32px;
+            border-radius: 60px;
+            color: #f5d998;
+            margin: 8px 0;
+        }
+        .cert-card .cert-desc {
+            font-size: 15px;
+            color: #5a3f28;
+            margin: 8px 0 4px;
+            line-height: 1.6;
+        }
+        .cert-card .cert-footer {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 2px solid #d4a347;
+            font-size: 13px;
+            color: #7a5f3e;
+            display: flex;
+            justify-content: space-between;
+        }
+        .cert-card .cert-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .cert-card .cert-actions .btn {
+            font-size: 15px;
+            padding: 10px 16px;
+            flex: 1;
+        }
+        .cert-card .close-cert {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #7a5f3e;
+            background: none;
+            border: none;
+            transition: transform 0.2s;
+        }
+        .cert-card .close-cert:hover {
+            transform: rotate(90deg);
         }
 
         /* ===== 响应式 ===== */
@@ -466,6 +591,9 @@
             .option-item { font-size: 14px; padding: 8px 12px; }
             .btn { font-size: 14px; padding: 10px 6px; }
             .score-board { font-size: 15px; padding: 4px 12px; }
+            .cert-card { padding: 24px 16px; }
+            .cert-card .cert-name { font-size: 24px; }
+            .cert-card .cert-score { font-size: 36px; }
         }
     </style>
 </head>
@@ -476,7 +604,7 @@
     <!-- 1. 登录 / 注册 界面 -->
     <!-- ============================================================ -->
     <div id="authPage">
-        <div class="title">📖 党史竞答</div>
+        <div class="title">📖 知识竞答</div>
         <div class="subtitle">传承红色基因 · 汲取奋进力量</div>
 
         <div class="auth-tabs">
@@ -521,7 +649,7 @@
     <div id="mainPage" class="hidden">
         <!-- 头部 -->
         <div class="header">
-            <div class="title">📖 党史竞答</div>
+            <div class="title">📖 知识竞答</div>
             <div class="user-info">
                 <span class="username" id="displayUsername">用户</span>
                 <button class="logout-btn" onclick="handleLogout()">退出</button>
@@ -565,10 +693,34 @@
 
         <!-- ===== 排行榜 ===== -->
         <div class="rank-section">
-            <div class="rank-title">🏅 积分排行榜</div>
+            <div class="rank-title">🏅 积分排行榜 <span style="font-size:12px;font-weight:400;color:#7a5f3e;">（点击姓名生成证书）</span></div>
             <div class="rank-list" id="rankList">
                 <div class="rank-empty">暂无数据</div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 证书弹窗 -->
+<!-- ============================================================ -->
+<div class="cert-overlay" id="certOverlay" onclick="closeCert(event)">
+    <div class="cert-card" id="certCard">
+        <button class="close-cert" onclick="closeCert()">✕</button>
+        <div class="cert-badge-top">📜</div>
+        <div class="cert-title">学习证书</div>
+        <div class="cert-subtitle">—— 不忘初心 牢记使命 ——</div>
+        <div class="cert-name" id="certName">——</div>
+        <div style="font-size:14px;color:#5a3f28;">累积积分</div>
+        <div class="cert-score" id="certScore">0</div>
+        <div class="cert-desc" id="certDesc">恭喜你完成竞赛知识学习，<br>展现了优异的理论素养！</div>
+        <div class="cert-footer">
+            <span>📅 颁发日期: <span id="certDate">2024-01-01</span></span>
+            <span>⭐ 张思德传人</span>
+        </div>
+        <div class="cert-actions">
+            <button class="btn btn-secondary" onclick="closeCert()">关闭</button>
+            <button class="btn btn-gold" onclick="downloadCert()">📥 下载证书</button>
         </div>
     </div>
 </div>
@@ -580,12 +732,6 @@
 
     const STORAGE_KEY = 'partyQuizData';
 
-    /** 数据结构：
-     *  {
-     *    users: { username: { password, totalScore } },
-     *    currentUser: 'username' | null,
-     *  }
-     */
     function getStorage() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
@@ -636,41 +782,60 @@
     //  大型题库 (30道)
     // ================================================================
     const FULL_QUESTION_BANK = [
-        // 原有10道 + 新增20道
-        { question: "中国共产党第一次全国代表大会在哪一年召开？", options: ["1920年", "1921年", "1922年", "1923年"], answer: 1 },
-        { question: "党的最高理想和最终目标是什么？", options: ["实现社会主义现代化", "实现中华民族伟大复兴", "实现共产主义", "全面建成小康社会"], answer: 2 },
-        { question: "长征途中，红军翻越的第一座大雪山是？", options: ["夹金山", "岷山", "六盘山", "乌蒙山"], answer: 0 },
-        { question: "抗日战争中，平型关大捷是八路军哪支部队取得的？", options: ["115师", "120师", "129师", "新四军"], answer: 0 },
-        { question: "中华人民共和国成立的时间是？", options: ["1949年10月1日", "1950年10月1日", "1948年10月1日", "1949年9月1日"], answer: 0 },
-        { question: "哪次会议确立了以毛泽东为核心的党中央领导？", options: ["八七会议", "遵义会议", "瓦窑堡会议", "洛川会议"], answer: 1 },
-        { question: "“两弹一星”精神中不包括以下哪项？", options: ["热爱祖国", "自力更生", "艰苦奋斗", "对外开放"], answer: 3 },
-        { question: "改革开放始于哪一年？", options: ["1976年", "1978年", "1980年", "1982年"], answer: 1 },
-        { question: "中国共产党人的初心和使命是什么？", options: ["实现共同富裕", "为中国人民谋幸福，为中华民族谋复兴", "实现现代化", "建设社会主义强国"], answer: 1 },
-        { question: "党在新时代的强军目标是什么？", options: ["建设信息化军队", "建设世界一流军队", "听党指挥、能打胜仗、作风优良", "打赢局部战争"], answer: 2 },
-        // ---- 新增20道 ----
-        { question: "五四运动爆发于哪一年？", options: ["1917年", "1918年", "1919年", "1920年"], answer: 2 },
-        { question: "中国共产党第二次全国代表大会提出了什么纲领？", options: ["民主革命纲领", "社会主义革命纲领", "共产主义纲领", "抗日救国纲领"], answer: 0 },
-        { question: "南昌起义发生在哪一年？", options: ["1925年", "1926年", "1927年", "1928年"], answer: 2 },
-        { question: "井冈山革命根据地创建于哪一年？", options: ["1926年", "1927年", "1928年", "1929年"], answer: 1 },
-        { question: "红军长征胜利结束的标志性事件是？", options: ["遵义会议", "吴起镇会师", "会宁会师", "延安会师"], answer: 2 },
-        { question: "西安事变和平解决的历史意义是？", options: ["标志着国共合作形成", "标志着抗日民族统一战线初步形成", "标志着抗战开始", "标志着国共内战结束"], answer: 1 },
-        { question: "百团大战发生在哪一年？", options: ["1938年", "1939年", "1940年", "1941年"], answer: 2 },
-        { question: "中共七大召开的时间和地点是？", options: ["1945年 延安", "1945年 重庆", "1946年 延安", "1946年 西柏坡"], answer: 0 },
-        { question: "三大战役中，最先打响的是？", options: ["辽沈战役", "淮海战役", "平津战役", "渡江战役"], answer: 0 },
-        { question: "中华人民共和国国旗的设计者是？", options: ["徐悲鸿", "梁思成", "曾联松", "林徽因"], answer: 2 },
-        { question: "抗美援朝战争爆发于哪一年？", options: ["1949年", "1950年", "1951年", "1952年"], answer: 1 },
-        { question: "“两弹一星”的“两弹”指的是？", options: ["原子弹和氢弹", "原子弹和导弹", "氢弹和导弹", "原子弹和核弹"], answer: 1 },
-        { question: "袁隆平被誉为？", options: ["中国航天之父", "中国杂交水稻之父", "中国核潜艇之父", "中国桥梁之父"], answer: 1 },
-        { question: "恢复中华人民共和国在联合国合法席位的时间是？", options: ["1970年", "1971年", "1972年", "1973年"], answer: 1 },
-        { question: "经济特区中，最早成立的是？", options: ["深圳", "珠海", "汕头", "厦门"], answer: 0 },
-        { question: "香港回归祖国是在哪一年？", options: ["1995年", "1996年", "1997年", "1998年"], answer: 2 },
-        { question: "澳门回归祖国是在哪一年？", options: ["1997年", "1998年", "1999年", "2000年"], answer: 2 },
-        { question: "神舟五号载人飞船成功发射的时间是？", options: ["2001年", "2002年", "2003年", "2004年"], answer: 2 },
-        { question: "北京奥运会举办于哪一年？", options: ["2006年", "2007年", "2008年", "2009年"], answer: 2 },
-        { question: "中国梦的核心内涵是？", options: ["实现中华民族伟大复兴", "实现全面小康社会", "实现社会主义现代化", "实现共同富裕"], answer: 0 }
+        { question: "题库1", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库2", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库3", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库4", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库5", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库6", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库7", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库8", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库9", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库10", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库11", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库12", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库13", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库14", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库15", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库16", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库17", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库18", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库19", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库20", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库21", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库22", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库23", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库24", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库25", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库26", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库27", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库28", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库29", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库30", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库31", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库32", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库33", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库34", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库35", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库36", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库37", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库38", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库39", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库40", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库41", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库42", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库43", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库44", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库45", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库46", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库47", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库48", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库49", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库50", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库51", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 },
+        { question: "题库52", options: ["选项A", "选项B", "选项C", "选项D"], answer: 1 }
     ];
 
-    // 每轮题目数量
     const ROUND_SIZE = 10;
 
     // ================================================================
@@ -680,9 +845,9 @@
         currentIndex: 0,
         userAnswers: [],
         roundScore: 0,
-        timeLeft: 30,
+        timeLeft: 10,
         isFinished: false,
-        questions: [],      // 本轮抽取的题目 (长度为 ROUND_SIZE)
+        questions: [],
         timerInterval: null,
         message: '💡 点击选项作答'
     };
@@ -716,6 +881,14 @@
     const finishMsg = $('finishMsg');
     const quizArea = $('quizArea');
     const rankList = $('rankList');
+
+    // 证书相关
+    const certOverlay = $('certOverlay');
+    const certName = $('certName');
+    const certScore = $('certScore');
+    const certDesc = $('certDesc');
+    const certDate = $('certDate');
+    let currentCertUser = null;
 
     // ================================================================
     //  认证模块
@@ -814,7 +987,7 @@
     }
 
     // ================================================================
-    //  游戏核心逻辑 - 从大题库中随机抽取 ROUND_SIZE 道
+    //  游戏核心逻辑
     // ================================================================
 
     function shuffleArray(arr) {
@@ -825,15 +998,10 @@
         return arr;
     }
 
-    // 从完整题库中随机抽取 ROUND_SIZE 道，并打乱每个题目的选项
     function pickRandomQuestions(bank, count) {
-        // 深拷贝题库
         const pool = bank.map(q => ({ ...q, options: [...q.options] }));
-        // 打乱题库顺序
         const shuffledPool = shuffleArray(pool);
-        // 取前 count 道
         const selected = shuffledPool.slice(0, count);
-        // 对每道题的选项进行打乱，并重新映射答案
         return selected.map(q => {
             const opts = [...q.options];
             const correctText = opts[q.answer];
@@ -848,13 +1016,12 @@
     }
 
     function initGame() {
-        // 从大题库中随机抽取 ROUND_SIZE 道
         state.questions = pickRandomQuestions(FULL_QUESTION_BANK, ROUND_SIZE);
         state.currentIndex = 0;
         state.userAnswers = new Array(state.questions.length).fill(null);
         state.roundScore = 0;
         state.isFinished = false;
-        state.timeLeft = 30;
+        state.timeLeft = 10;
         state.message = '💡 点击选项作答';
 
         if (state.timerInterval) {
@@ -967,7 +1134,7 @@
         finalScore.textContent = state.roundScore;
         const total = state.questions.length;
         const pct = state.roundScore / total;
-        if (pct >= 0.8) finishMsg.textContent = '🌟 党史达人！';
+        if (pct >= 0.8) finishMsg.textContent = '🌟 学习达人！';
         else if (pct >= 0.5) finishMsg.textContent = '👍 继续加油！';
         else finishMsg.textContent = '📖 多多学习！';
 
@@ -1036,7 +1203,7 @@
         if (state.timerInterval) {
             clearInterval(state.timerInterval);
         }
-        state.timeLeft = 30;
+        state.timeLeft = 10;
         timeLeftSpan.textContent = state.timeLeft;
         state.timerInterval = setInterval(() => {
             state.timeLeft--;
@@ -1089,7 +1256,7 @@
     }
 
     // ================================================================
-    //  排行榜
+    //  排行榜 & 证书
     // ================================================================
     function renderRanking() {
         const ranking = getRanking();
@@ -1105,14 +1272,88 @@
         ranking.forEach((item, index) => {
             const isMe = item.username === username;
             html += `
-                <div class="rank-item ${isMe ? 'me' : ''}">
+                <div class="rank-item ${isMe ? 'me' : ''}" onclick="showCertificate('${item.username}')">
                     <span class="rank-num">${index + 1}</span>
                     <span class="rank-name">${item.username} ${isMe ? '👤' : ''}</span>
                     <span class="rank-score">${item.totalScore} 分</span>
+                    <span class="cert-badge">📜</span>
                 </div>
             `;
         });
         rankList.innerHTML = html;
+    }
+
+    // 显示证书
+    function showCertificate(username) {
+        const store = getStorage();
+        const user = store.users[username];
+        if (!user) return;
+
+        currentCertUser = username;
+        certName.textContent = username;
+        certScore.textContent = user.totalScore || 0;
+
+        // 根据积分生成不同评语
+        const score = user.totalScore || 0;
+        if (score >= 80) {
+            certDesc.textContent = '恭喜你完成竞赛知识学习，展现了卓越的理论素养和深厚的历史底蕴！';
+        } else if (score >= 40) {
+            certDesc.textContent = '恭喜你完成竞赛知识学习，展现了良好的理论素养和学习热情！';
+        } else if (score >= 20) {
+            certDesc.textContent = '恭喜你完成竞赛知识学习，继续保持学习热情，不断进步！';
+        } else {
+            certDesc.textContent = '恭喜你完成竞赛知识学习，愿你在党史学习中不断汲取奋进力量！';
+        }
+
+        // 生成日期
+        const now = new Date();
+        certDate.textContent = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0');
+
+        certOverlay.classList.add('show');
+    }
+
+    // 关闭证书
+    function closeCert(e) {
+        if (e && e.target !== e.currentTarget) return;
+        certOverlay.classList.remove('show');
+    }
+
+    // 下载证书 (保存为图片)
+    function downloadCert() {
+        const card = document.getElementById('certCard');
+        // 使用 html2canvas 生成图片 (通过CDN加载)
+        if (typeof html2canvas === 'undefined') {
+            // 动态加载 html2canvas
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = () => {
+                generateAndDownload(card);
+            };
+            document.head.appendChild(script);
+        } else {
+            generateAndDownload(card);
+        }
+    }
+
+    function generateAndDownload(element) {
+        html2canvas(element, {
+            scale: 2,
+            backgroundColor: '#fef7e6',
+            borderRadius: '32px',
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `学习证书_${currentCertUser || '学员'}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(err => {
+            alert('生成证书图片失败，请尝试截图保存。');
+            console.error(err);
+        });
     }
 
     // ================================================================
@@ -1127,6 +1368,13 @@
     loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
     registerPassword.addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
 
+    // 点击弹窗外部关闭
+    certOverlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeCert();
+        }
+    });
+
     (function checkAutoLogin() {
         const store = getStorage();
         if (store.currentUser && store.users[store.currentUser]) {
@@ -1138,6 +1386,9 @@
     window.handleLogin = handleLogin;
     window.handleRegister = handleRegister;
     window.handleLogout = handleLogout;
+    window.showCertificate = showCertificate;
+    window.closeCert = closeCert;
+    window.downloadCert = downloadCert;
 </script>
 </body>
-</html>
+</html>/html>
