@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>党史军史答题闯关挑战</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -367,7 +368,14 @@
 
     <script>
         // ============================================================
-        // 前端内置题库
+        //  🔥 重要：在这里设置您的后端 API 地址
+        //  替换为您部署的 Worker URL
+        // ============================================================
+        const API_BASE = 'https://quiz-api.您的用户名.workers.dev';
+        // 示例：const API_BASE = 'https://quiz-api.myaccount.workers.dev';
+
+        // ============================================================
+        //  前端内置题库
         // ============================================================
         const QUIZ_DATA = {
             warmup: [
@@ -424,17 +432,55 @@
         };
 
         // ============================================================
-        // 数据存储（使用 localStorage 模拟数据库）
+        //  API 调用封装
+        // ============================================================
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const url = API_BASE + endpoint;
+            const options = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (data) options.body = JSON.stringify(data);
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                // 降级到 localStorage（开发/演示模式）
+                return fallbackDB(endpoint, method, data);
+            }
+        }
+
+        // ============================================================
+        //  降级方案：localStorage（当后端不可用时自动使用）
+        // ============================================================
+        function fallbackDB(endpoint, method, data) {
+            const key = 'fallback_' + endpoint.replace(/\//g, '_');
+            if (method === 'GET') {
+                return JSON.parse(localStorage.getItem(key)) || null;
+            } else if (method === 'POST' || method === 'PUT') {
+                localStorage.setItem(key, JSON.stringify(data));
+                return data;
+            }
+            return null;
+        }
+
+        // ============================================================
+        //  数据库操作
         // ============================================================
         const DB = {
-            getUsers() {
-                return JSON.parse(localStorage.getItem('quiz_users')) || [];
+            async getUsers() {
+                const res = await apiRequest('/users');
+                return res || [];
             },
-            saveUsers(users) {
-                localStorage.setItem('quiz_users', JSON.stringify(users));
+            async saveUsers(users) {
+                await apiRequest('/users', 'POST', users);
             },
-            getConfig() {
-                return JSON.parse(localStorage.getItem('quiz_config')) || {
+            async getConfig() {
+                const res = await apiRequest('/config');
+                return res || {
                     warmup: true,
                     ranked: true,
                     challenge: true,
@@ -443,13 +489,13 @@
                     soundEffect: 'crisp'
                 };
             },
-            saveConfig(cfg) {
-                localStorage.setItem('quiz_config', JSON.stringify(cfg));
+            async saveConfig(cfg) {
+                await apiRequest('/config', 'POST', cfg);
             }
         };
 
         // ============================================================
-        // 全局状态
+        //  全局状态
         // ============================================================
         const ADMIN_PWD = "zsdcr123";
         let currentUser = null;
@@ -467,6 +513,7 @@
         function getModeLabel(mode) {
             return { warmup: '热身赛', ranked: '排位赛', challenge: '挑战赛' } [mode] || '未知';
         }
+
         function getModeIcon(mode) {
             return { warmup: '🔥', ranked: '⚔️', challenge: '🏆' } [mode] || '';
         }
@@ -475,111 +522,8 @@
             return QUIZ_DATA[mode] || [];
         }
 
-        function getUsers() { return DB.getUsers(); }
-        function saveUsers(users) { DB.saveUsers(users); }
-        function getAdminConfig() { return DB.getConfig(); }
-        function saveAdminConfig() {
-            const cfg = {
-                warmup: document.getElementById('toggleWarmup').checked,
-                ranked: document.getElementById('toggleRanked').checked,
-                challenge: document.getElementById('toggleChallenge').checked,
-                timer: document.getElementById('toggleTimer').checked,
-                combo: document.getElementById('toggleCombo').checked,
-                soundEffect: document.getElementById('soundEffectSelect').value
-            };
-            DB.saveConfig(cfg);
-            document.getElementById('toggleWarmupLabel').textContent = cfg.warmup ? '开启' : '关闭';
-            document.getElementById('toggleRankedLabel').textContent = cfg.ranked ? '开启' : '关闭';
-            document.getElementById('toggleChallengeLabel').textContent = cfg.challenge ? '开启' : '关闭';
-            document.getElementById('toggleTimerLabel').textContent = cfg.timer ? '开启' : '关闭';
-            document.getElementById('toggleComboLabel').textContent = cfg.combo ? '开启' : '关闭';
-            document.getElementById('soundEffectSelect').value = cfg.soundEffect;
-            return cfg;
-        }
-
-        function loadAdminConfig() {
-            const cfg = DB.getConfig();
-            document.getElementById('toggleWarmup').checked = cfg.warmup;
-            document.getElementById('toggleRanked').checked = cfg.ranked;
-            document.getElementById('toggleChallenge').checked = cfg.challenge;
-            document.getElementById('toggleTimer').checked = cfg.timer;
-            document.getElementById('toggleCombo').checked = cfg.combo;
-            document.getElementById('soundEffectSelect').value = cfg.soundEffect || 'crisp';
-            document.getElementById('toggleWarmupLabel').textContent = cfg.warmup ? '开启' : '关闭';
-            document.getElementById('toggleRankedLabel').textContent = cfg.ranked ? '开启' : '关闭';
-            document.getElementById('toggleChallengeLabel').textContent = cfg.challenge ? '开启' : '关闭';
-            document.getElementById('toggleTimerLabel').textContent = cfg.timer ? '开启' : '关闭';
-            document.getElementById('toggleComboLabel').textContent = cfg.combo ? '开启' : '关闭';
-            return cfg;
-        }
-
         // ============================================================
-        // 音效
-        // ============================================================
-        function playSoundEffect() {
-            try {
-                if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
-                const cfg = { soundEffect: document.getElementById('soundEffectSelect').value };
-                const style = cfg.soundEffect || 'crisp';
-                const now = audioCtx.currentTime;
-                if (style === 'crisp') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.value = 1200;
-                    gain.gain.setValueAtTime(0.3, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(now);
-                    osc.stop(now + 0.08);
-                } else if (style === 'deep') {
-                    const bufferSize = audioCtx.sampleRate * 0.15;
-                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                    const data = buffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.03));
-                    const source = audioCtx.createBufferSource();
-                    source.buffer = buffer;
-                    const gain = audioCtx.createGain();
-                    gain.gain.setValueAtTime(0.35, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-                    source.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    source.start(now);
-                    source.stop(now + 0.15);
-                } else if (style === 'electronic') {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(800, now);
-                    osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start(now);
-                    osc.stop(now + 0.1);
-                }
-            } catch (_) {}
-        }
-
-        function previewSound() { saveAdminConfig(); playSoundEffect(); }
-
-        // ============================================================
-        // 浮动文字
-        // ============================================================
-        function showFloatingText(text) {
-            const container = document.getElementById('floatingTextContainer');
-            const el = document.createElement('div');
-            el.className = 'float-text';
-            el.textContent = text;
-            container.appendChild(el);
-            el.addEventListener('animationend', () => el.remove());
-            playSoundEffect();
-        }
-
-        // ============================================================
-        // 页面切换
+        //  页面切换
         // ============================================================
         function switchPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -588,8 +532,9 @@
                 el.classList.add('active');
                 const header = document.getElementById('globalHeader');
                 const isQuizMode = (pageId === 'quizPage' || pageId === 'resultPage');
-                if (isQuizMode) { header.classList.add('compact'); el.classList.add('quiz-mode'); }
-                else { header.classList.remove('compact'); el.classList.remove('quiz-mode'); }
+                if (isQuizMode) { header.classList.add('compact');
+                    el.classList.add('quiz-mode'); } else { header.classList.remove('compact');
+                    el.classList.remove('quiz-mode'); }
                 if (pageId === 'rankPage') renderRank();
                 if (pageId === 'adminPage') { renderAdminData(); }
             }
@@ -602,23 +547,30 @@
         }
 
         // ============================================================
-        // 注册 / 登录
+        //  注册 / 登录
         // ============================================================
-        function userRegister() {
+        async function userRegister() {
             const unit = document.getElementById('unitSelect').value;
             const name = document.getElementById('userName').value.trim();
             const pwd = document.getElementById('userPwd').value.trim();
             if (!unit) return alert('请选择所属战队');
             if (!name) return alert('请输入姓名');
             if (!pwd) return alert('请设置登录密码');
-            let users = getUsers();
+
+            let users = await DB.getUsers();
             if (users.find(u => u.name === name)) return alert('该姓名已注册，请直接登录或更换姓名');
+
             const user = {
                 id: Date.now(),
-                name, unit, pwd,
-                warmupScore: 0, warmupDate: '',
-                rankScore: 0, rankRemain: 3,
-                challengeScore: 0, challengeDate: '',
+                name,
+                unit,
+                pwd,
+                warmupScore: 0,
+                warmupDate: '',
+                rankScore: 0,
+                rankRemain: 3,
+                challengeScore: 0,
+                challengeDate: '',
                 totalScore: 0,
                 time: new Date().toLocaleString(),
                 rankDaily: { date: '', used: 0 },
@@ -628,25 +580,28 @@
                 challengeUsed: 0
             };
             users.push(user);
-            saveUsers(users);
+            await DB.saveUsers(users);
             currentUser = user;
+
             const modalText = document.getElementById('modalText');
             modalText.innerText = unit === '神秘小分队' ? '欢迎实力超群的你加入挑战！' : `恭喜加入${unit}，让我们一起为荣誉而战！`;
             document.getElementById('welcomeModal').classList.remove('hidden');
         }
 
-        function userLogin() {
+        async function userLogin() {
             const name = document.getElementById('loginName').value.trim();
             const pwd = document.getElementById('loginPwd').value.trim();
             if (!name || !pwd) return alert('请填写姓名和密码');
-            const users = getUsers();
+
+            const users = await DB.getUsers();
             const user = users.find(u => u.name === name && u.pwd === pwd);
             if (!user) return alert('姓名或密码错误，请核对');
+
             currentUser = user;
             checkDailyReset(user);
             checkChallengeReset(user);
             updateTotalScore(user);
-            saveUsers(users);
+            await DB.saveUsers(users);
             switchPage('mainPage');
             updateMainUI();
         }
@@ -679,7 +634,7 @@
         }
 
         // ============================================================
-        // 主界面更新
+        //  主界面更新
         // ============================================================
         function updateMainUI() {
             if (!currentUser) return;
@@ -690,26 +645,33 @@
             document.getElementById('mainRank').textContent = currentUser.rankScore || 0;
             document.getElementById('mainChallenge').textContent = currentUser.challengeScore || 0;
             document.getElementById('mainRankRemain').textContent = currentUser.rankRemain || 0;
+
             const wStatus = currentUser.warmupScore ? `今日最高: ${currentUser.warmupScore}` : '今日未玩';
             document.getElementById('warmupStatus').textContent = wStatus;
-            document.getElementById('rankedStatus').textContent = `今日剩余: ${currentUser.rankRemain || 0}次 | 最高: ${currentUser.rankScore || 0}`;
-            document.getElementById('challengeStatus').textContent = `今日已用: ${currentUser.challengeUsed || 0}/1 | 最高: ${currentUser.challengeScore || 0}`;
-            const cfg = getAdminConfig();
-            document.querySelectorAll('.mode-card').forEach((card, idx) => {
-                const modes = ['warmup', 'ranked', 'challenge'];
-                const m = modes[idx];
-                if (!cfg[m]) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
-                else { card.style.opacity = '1'; card.style.pointerEvents = 'auto'; }
+            document.getElementById('rankedStatus').textContent =
+                `今日剩余: ${currentUser.rankRemain || 0}次 | 最高: ${currentUser.rankScore || 0}`;
+            document.getElementById('challengeStatus').textContent =
+                `今日已用: ${currentUser.challengeUsed || 0}/1 | 最高: ${currentUser.challengeScore || 0}`;
+
+            DB.getConfig().then(cfg => {
+                document.querySelectorAll('.mode-card').forEach((card, idx) => {
+                    const modes = ['warmup', 'ranked', 'challenge'];
+                    const m = modes[idx];
+                    if (!cfg[m]) { card.style.opacity = '0.5';
+                        card.style.pointerEvents = 'none'; } else { card.style.opacity = '1';
+                        card.style.pointerEvents = 'auto'; }
+                });
             });
         }
 
         // ============================================================
-        // 进入赛制
+        //  进入赛制
         // ============================================================
-        function enterMode(mode) {
+        async function enterMode(mode) {
             if (!currentUser) return alert('请先登录');
-            const cfg = getAdminConfig();
+            const cfg = await DB.getConfig();
             if (!cfg[mode]) { alert('⏳ 该赛制正在补充题库，暂未开放'); return; }
+
             if (mode === 'ranked') {
                 checkDailyReset(currentUser);
                 if ((currentUser.rankRemain || 0) <= 0) { alert('今日排位赛次数已用完，请明天再来！'); return; }
@@ -718,30 +680,41 @@
                 checkChallengeReset(currentUser);
                 if ((currentUser.challengeUsed || 0) >= 1) { alert('今日挑战赛已参加，请明天再来！'); return; }
             }
+
             currentMode = mode;
             quizQuestions = getQuiz(mode);
-            quizIndex = 0; userScore = 0; comboCount = 0; isAnswering = false;
-            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            quizIndex = 0;
+            userScore = 0;
+            comboCount = 0;
+            isAnswering = false;
+            if (timerInterval) { clearInterval(timerInterval);
+                timerInterval = null; }
+
             document.getElementById('nowScore').textContent = '0';
             document.getElementById('comboDisplay').classList.add('hidden');
             document.getElementById('comboDisplay').textContent = '🔥 连击 x0';
+
             switchPage('quizPage');
             document.getElementById('quizModeLabel').textContent = getModeIcon(mode) + ' ' + getModeLabel(mode);
             document.getElementById('totalNum').textContent = quizQuestions.length;
-            document.getElementById('remainInfo').textContent = mode === 'ranked' ? `剩余${currentUser.rankRemain}次` : mode === 'challenge' ? '挑战机会 1/1' : '';
+            document.getElementById('remainInfo').textContent =
+                mode === 'ranked' ? `剩余${currentUser.rankRemain}次` :
+                mode === 'challenge' ? '挑战机会 1/1' : '';
+
             const showTimer = cfg.timer && (mode === 'ranked' || mode === 'challenge');
             document.getElementById('timerArea').className = showTimer ? 'block' : 'hidden';
             renderQuestion();
         }
 
         // ============================================================
-        // 答题逻辑
+        //  答题逻辑（完整保留）
         // ============================================================
         function renderQuestion() {
             const item = quizQuestions[quizIndex];
             if (!item) return;
             document.getElementById('currentNum').textContent = quizIndex + 1;
             document.getElementById('questionText').textContent = item.q;
+
             const optBox = document.getElementById('optionBox');
             optBox.innerHTML = '';
             const keys = ['A', 'B', 'C', 'D'];
@@ -754,32 +727,37 @@
                 div.onclick = () => selectAnswer(key, div);
                 optBox.appendChild(div);
             });
+
             document.getElementById('tipBox').classList.add('hidden');
             const nextBtn = document.getElementById('nextBtn');
             nextBtn.disabled = true;
             nextBtn.className = 'w-full bg-gray-400 text-white py-3 rounded-lg font-medium disabled:opacity-60';
             isAnswering = false;
-            const cfg = getAdminConfig();
-            if (cfg.timer && (currentMode === 'ranked' || currentMode === 'challenge')) {
-                const limit = currentMode === 'ranked' ? 20 : 15;
-                timeLeft = limit;
-                document.getElementById('timerRing').textContent = timeLeft;
-                document.getElementById('timerRing').className = 'timer-ring';
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(() => {
-                    timeLeft--;
+
+            DB.getConfig().then(cfg => {
+                if (cfg.timer && (currentMode === 'ranked' || currentMode === 'challenge')) {
+                    const limit = currentMode === 'ranked' ? 20 : 15;
+                    timeLeft = limit;
                     document.getElementById('timerRing').textContent = timeLeft;
-                    if (timeLeft <= 5) document.getElementById('timerRing').className = 'timer-ring warning';
-                    if (timeLeft <= 0) {
-                        clearInterval(timerInterval); timerInterval = null;
-                        if (!isAnswering) handleTimeout();
-                    }
-                }, 1000);
-            } else {
-                document.getElementById('timerRing').textContent = '--';
-                document.getElementById('timerRing').className = 'timer-ring';
-                if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-            }
+                    document.getElementById('timerRing').className = 'timer-ring';
+                    if (timerInterval) clearInterval(timerInterval);
+                    timerInterval = setInterval(() => {
+                        timeLeft--;
+                        document.getElementById('timerRing').textContent = timeLeft;
+                        if (timeLeft <= 5) document.getElementById('timerRing').className = 'timer-ring warning';
+                        if (timeLeft <= 0) {
+                            clearInterval(timerInterval);
+                            timerInterval = null;
+                            if (!isAnswering) handleTimeout();
+                        }
+                    }, 1000);
+                } else {
+                    document.getElementById('timerRing').textContent = '--';
+                    document.getElementById('timerRing').className = 'timer-ring';
+                    if (timerInterval) { clearInterval(timerInterval);
+                        timerInterval = null; }
+                }
+            });
         }
 
         function handleTimeout() {
@@ -790,95 +768,129 @@
             tipBox.className = 'rounded-lg p-3 mb-3 text-sm bg-red-50 text-danger';
             tipText.innerHTML = `<i class="fa fa-times-circle"></i> 答题超时，本题不得分`;
             tipBox.classList.remove('hidden');
+
             const item = quizQuestions[quizIndex];
             document.querySelectorAll('.option-item').forEach(el => {
                 el.onclick = null;
-                if (el.dataset.key === item.a) { el.classList.remove('border-gray-300'); el.classList.add('border-success', 'bg-green-50'); }
+                if (el.dataset.key === item.a) {
+                    el.classList.remove('border-gray-300');
+                    el.classList.add('border-success', 'bg-green-50');
+                }
             });
+
             if (currentMode === 'challenge') { endQuiz('超时淘汰'); return; }
             const nextBtn = document.getElementById('nextBtn');
             nextBtn.disabled = false;
             nextBtn.className = 'w-full bg-primary text-white py-3 rounded-lg font-medium';
-            if (currentMode === 'ranked') { comboCount = 0; updateComboDisplay(); }
+            if (currentMode === 'ranked') { comboCount = 0;
+                updateComboDisplay(); }
         }
 
         function selectAnswer(selKey, dom) {
             if (isAnswering) return;
             isAnswering = true;
-            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            if (timerInterval) { clearInterval(timerInterval);
+                timerInterval = null; }
+
             const item = quizQuestions[quizIndex];
             const isRight = selKey === item.a;
             const tipBox = document.getElementById('tipBox');
             const tipText = document.getElementById('tipText');
             const allOpt = document.querySelectorAll('.option-item');
             allOpt.forEach(el => el.onclick = null);
-            const cfg = getAdminConfig();
-            let addScore = 0, comboBonus = 0;
-            if (isRight) {
-                dom.classList.remove('border-gray-300');
-                dom.classList.add('border-success', 'bg-green-50');
-                addScore = 10;
-                if (cfg.combo && (currentMode === 'ranked' || currentMode === 'challenge')) {
-                    comboCount++;
-                    if (currentMode === 'ranked') {
-                        if (comboCount === 2) comboBonus = 2;
-                        else if (comboCount === 3) comboBonus = 5;
-                        else if (comboCount >= 5) comboBonus = 8;
-                    } else if (currentMode === 'challenge') {
-                        let multiplier = 1;
-                        if (comboCount >= 8) multiplier = 2;
-                        else if (comboCount >= 5) multiplier = 1.5;
-                        else if (comboCount >= 3) multiplier = 1.2;
-                        comboBonus = Math.floor(addScore * (multiplier - 1));
+
+            DB.getConfig().then(cfg => {
+                let addScore = 0,
+                    comboBonus = 0;
+                if (isRight) {
+                    dom.classList.remove('border-gray-300');
+                    dom.classList.add('border-success', 'bg-green-50');
+                    addScore = 10;
+
+                    if (cfg.combo && (currentMode === 'ranked' || currentMode === 'challenge')) {
+                        comboCount++;
+                        if (currentMode === 'ranked') {
+                            if (comboCount === 2) comboBonus = 2;
+                            else if (comboCount === 3) comboBonus = 5;
+                            else if (comboCount >= 5) comboBonus = 8;
+                        } else if (currentMode === 'challenge') {
+                            let multiplier = 1;
+                            if (comboCount >= 8) multiplier = 2;
+                            else if (comboCount >= 5) multiplier = 1.5;
+                            else if (comboCount >= 3) multiplier = 1.2;
+                            comboBonus = Math.floor(addScore * (multiplier - 1));
+                        }
+                        updateComboDisplay();
                     }
-                    updateComboDisplay();
+
+                    const totalAdd = addScore + comboBonus;
+                    userScore += totalAdd;
+                    document.getElementById('nowScore').textContent = userScore;
+
+                    let bonusText = comboBonus > 0 ? ` (连击+${comboBonus})` : '';
+                    tipBox.className = 'rounded-lg p-3 mb-3 text-sm bg-green-50 text-success';
+                    tipText.innerHTML = `<i class="fa fa-check-circle"></i> 回答正确！+${totalAdd}分${bonusText}`;
+                } else {
+                    dom.classList.remove('border-gray-300');
+                    dom.classList.add('border-danger', 'bg-red-50');
+                    allOpt.forEach(el => {
+                        if (el.dataset.key === item.a) {
+                            el.classList.remove('border-gray-300');
+                            el.classList.add('border-success', 'bg-green-50');
+                        }
+                    });
+                    tipBox.className = 'rounded-lg p-3 mb-3 text-sm bg-red-50 text-danger';
+                    tipText.innerHTML =
+                        `<i class="fa fa-times-circle"></i> 回答错误，正确答案：${item.a}. ${item.opt[item.a]}`;
+
+                    if (currentMode === 'challenge') { endQuiz('答错淘汰'); return; }
+                    if (currentMode === 'ranked') { comboCount = 0;
+                        updateComboDisplay(); }
                 }
-                const totalAdd = addScore + comboBonus;
-                userScore += totalAdd;
-                document.getElementById('nowScore').textContent = userScore;
-                let bonusText = comboBonus > 0 ? ` (连击+${comboBonus})` : '';
-                tipBox.className = 'rounded-lg p-3 mb-3 text-sm bg-green-50 text-success';
-                tipText.innerHTML = `<i class="fa fa-check-circle"></i> 回答正确！+${totalAdd}分${bonusText}`;
-            } else {
-                dom.classList.remove('border-gray-300');
-                dom.classList.add('border-danger', 'bg-red-50');
-                allOpt.forEach(el => {
-                    if (el.dataset.key === item.a) { el.classList.remove('border-gray-300'); el.classList.add('border-success', 'bg-green-50'); }
-                });
-                tipBox.className = 'rounded-lg p-3 mb-3 text-sm bg-red-50 text-danger';
-                tipText.innerHTML = `<i class="fa fa-times-circle"></i> 回答错误，正确答案：${item.a}. ${item.opt[item.a]}`;
-                if (currentMode === 'challenge') { endQuiz('答错淘汰'); return; }
-                if (currentMode === 'ranked') { comboCount = 0; updateComboDisplay(); }
-            }
-            tipBox.classList.remove('hidden');
-            if (quizIndex >= quizQuestions.length - 1) { endQuiz('完成'); return; }
-            const nextBtn = document.getElementById('nextBtn');
-            nextBtn.disabled = false;
-            nextBtn.className = 'w-full bg-primary text-white py-3 rounded-lg font-medium';
+
+                tipBox.classList.remove('hidden');
+
+                if (quizIndex >= quizQuestions.length - 1) { endQuiz('完成'); return; }
+                const nextBtn = document.getElementById('nextBtn');
+                nextBtn.disabled = false;
+                nextBtn.className = 'w-full bg-primary text-white py-3 rounded-lg font-medium';
+            });
         }
 
         function nextQuestion() {
-            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            if (timerInterval) { clearInterval(timerInterval);
+                timerInterval = null; }
             quizIndex++;
             if (quizIndex >= quizQuestions.length) { endQuiz('完成'); return; }
             renderQuestion();
         }
 
-        function endQuiz(reason) {
-            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        async function endQuiz(reason) {
+            if (timerInterval) { clearInterval(timerInterval);
+                timerInterval = null; }
             if (!currentUser) return;
-            let users = getUsers();
+
+            let users = await DB.getUsers();
             const user = users.find(u => u.id === currentUser.id);
             if (!user) return;
+
             const today = new Date().toDateString();
             const mode = currentMode;
+
             if (mode === 'warmup') {
-                if (user.warmupDate !== today) { user.warmupDate = today; user.warmupScore = Math.max(user.warmupScore || 0, userScore); }
-                else { user.warmupScore = Math.max(user.warmupScore || 0, userScore); }
+                if (user.warmupDate !== today) {
+                    user.warmupDate = today;
+                    user.warmupScore = Math.max(user.warmupScore || 0, userScore);
+                } else {
+                    user.warmupScore = Math.max(user.warmupScore || 0, userScore);
+                }
             } else if (mode === 'ranked') {
                 if (!user.rankDaily) user.rankDaily = { date: '', used: 0 };
-                if (user.rankDaily.date !== today) { user.rankDaily = { date: today, used: 1 }; }
-                else { user.rankDaily.used = (user.rankDaily.used || 0) + 1; }
+                if (user.rankDaily.date !== today) {
+                    user.rankDaily = { date: today, used: 1 };
+                } else {
+                    user.rankDaily.used = (user.rankDaily.used || 0) + 1;
+                }
                 user.rankRemain = Math.max(0, 3 - user.rankDaily.used);
                 user.rankScore = Math.max(user.rankScore || 0, userScore);
                 if (!user.rankHistory) user.rankHistory = [];
@@ -890,29 +902,40 @@
                 if (!user.challengeHistory) user.challengeHistory = [];
                 user.challengeHistory.push({ date: today, score: userScore });
             }
+
             updateTotalScore(user);
-            saveUsers(users);
+            await DB.saveUsers(users);
             currentUser = user;
+
             document.getElementById('resName').textContent = user.name;
             document.getElementById('resUnit').textContent = user.unit;
             document.getElementById('resMode').textContent = getModeIcon(mode) + ' ' + getModeLabel(mode);
             document.getElementById('totalScore').textContent = userScore;
+
             const detail = [];
             if (mode === 'ranked' && comboCount > 0) detail.push(`连击 x${comboCount}`);
             if (reason === '超时淘汰') detail.push('⏱️ 超时淘汰');
             if (reason === '答错淘汰') detail.push('💥 答错淘汰');
             if (detail.length) document.getElementById('resultDetail').textContent = detail.join(' · ');
             else document.getElementById('resultDetail').textContent = '✅ 闯关完成！';
-            document.getElementById('resultTitle').textContent = reason === '完成' ? '🎉 闯关完成！' : reason === '超时淘汰' ? '⏱️ 超时淘汰' : reason === '答错淘汰' ? '💥 答错淘汰' : '🏁 结束';
+
+            document.getElementById('resultTitle').textContent =
+                reason === '完成' ? '🎉 闯关完成！' :
+                reason === '超时淘汰' ? '⏱️ 超时淘汰' :
+                reason === '答错淘汰' ? '💥 答错淘汰' : '🏁 结束';
+
             switchPage('resultPage');
         }
 
         function quitQuiz() {
-            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-            if (confirm('确定退出当前答题吗？进度将不会保存。')) { switchPage('mainPage'); updateMainUI(); }
+            if (timerInterval) { clearInterval(timerInterval);
+                timerInterval = null; }
+            if (confirm('确定退出当前答题吗？进度将不会保存。')) { switchPage('mainPage');
+                updateMainUI(); }
         }
 
-        function backToMain() { switchPage('mainPage'); updateMainUI(); }
+        function backToMain() { switchPage('mainPage');
+            updateMainUI(); }
 
         function updateComboDisplay() {
             const el = document.getElementById('comboDisplay');
@@ -922,38 +945,120 @@
                 if (comboCount >= 8) el.style.background = '#ff6b6b';
                 else if (comboCount >= 5) el.style.background = '#ffd93d';
                 else el.style.background = '#ffeaa7';
+
                 const comboMessages = { 1: '太棒啦！', 2: '佩服佩服！', 3: '厉害了！', 5: '哇噢！' };
                 if (comboCount in comboMessages) showFloatingText(comboMessages[comboCount]);
-            } else { el.classList.add('hidden'); }
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        function showFloatingText(text) {
+            const container = document.getElementById('floatingTextContainer');
+            const el = document.createElement('div');
+            el.className = 'float-text';
+            el.textContent = text;
+            container.appendChild(el);
+            el.addEventListener('animationend', () => el.remove());
+            playSoundEffect();
         }
 
         // ============================================================
-        // 排行榜
+        //  音效
+        // ============================================================
+        function playSoundEffect() {
+            try {
+                if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+                const cfg = { soundEffect: document.getElementById('soundEffectSelect').value };
+                const style = cfg.soundEffect || 'crisp';
+                const now = audioCtx.currentTime;
+
+                if (style === 'crisp') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = 1200;
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (style === 'deep') {
+                    const bufferSize = audioCtx.sampleRate * 0.15;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx
+                        .sampleRate * 0.03));
+                    const source = audioCtx.createBufferSource();
+                    source.buffer = buffer;
+                    const gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    source.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    source.start(now);
+                    source.stop(now + 0.15);
+                } else if (style === 'electronic') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                }
+            } catch (_) {}
+        }
+
+        function previewSound() { saveAdminConfig();
+            playSoundEffect(); }
+
+        // ============================================================
+        //  排行榜
         // ============================================================
         function setRankFilter(type) {
             rankFilter = type;
             document.querySelectorAll('.rank-tab').forEach(el => el.classList.toggle('active', el.dataset.rank === type));
             const sel = document.getElementById('teamSelector');
             const teamTotal = document.getElementById('teamTotalRank');
-            if (type === 'unit') { sel.classList.remove('hidden'); populateTeamSelector(); teamTotal.classList.add('hidden'); }
-            else { sel.classList.add('hidden'); if (type === 'total') teamTotal.classList.remove('hidden'); else teamTotal.classList.add('hidden'); }
+            if (type === 'unit') {
+                sel.classList.remove('hidden');
+                populateTeamSelector();
+                teamTotal.classList.add('hidden');
+            } else {
+                sel.classList.add('hidden');
+                if (type === 'total') teamTotal.classList.remove('hidden');
+                else teamTotal.classList.add('hidden');
+            }
             renderRank();
         }
 
         function populateTeamSelector() {
-            const list = getUsers();
-            const teams = [...new Set(list.map(u => u.unit))].filter(t => t);
-            const select = document.getElementById('selectedTeam');
-            select.innerHTML = '';
-            teams.forEach(t => { const opt = document.createElement('option'); opt.value = t; opt.textContent = t; select.appendChild(opt); });
-            if (teams.length === 0) select.innerHTML = '<option value="">暂无战队</option>';
+            DB.getUsers().then(list => {
+                const teams = [...new Set(list.map(u => u.unit))].filter(t => t);
+                const select = document.getElementById('selectedTeam');
+                select.innerHTML = '';
+                teams.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    select.appendChild(opt);
+                });
+                if (teams.length === 0) select.innerHTML = '<option value="">暂无战队</option>';
+            });
         }
 
-        function renderRank() {
-            const list = getUsers();
+        async function renderRank() {
+            const list = await DB.getUsers();
             const rankBox = document.getElementById('rankList');
             const teamTotalBox = document.getElementById('teamTotalList');
             const now = new Date();
+
             if (rankFilter === 'total') {
                 const sorted = [...list].sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
                 let html = '<div class="rank-section-title">🏆 个人总积分排行</div>';
@@ -961,10 +1066,12 @@
                 else {
                     sorted.forEach((u, i) => {
                         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-                        html += `<div class="flex justify-between items-center p-3 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${u.name}</span><span class="text-gray-400 text-xs ml-1">(${u.unit})</span></div><span class="font-bold text-success">${u.totalScore || 0}分</span></div>`;
+                        html +=
+                            `<div class="flex justify-between items-center p-3 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${u.name}</span><span class="text-gray-400 text-xs ml-1">(${u.unit})</span></div><span class="font-bold text-success">${u.totalScore || 0}分</span></div>`;
                     });
                 }
                 rankBox.innerHTML = html;
+
                 const teamMap = {};
                 list.forEach(u => { if (u.unit) teamMap[u.unit] = (teamMap[u.unit] || 0) + (u.totalScore || 0); });
                 const teamSorted = Object.entries(teamMap).sort((a, b) => b[1] - a[1]);
@@ -973,11 +1080,13 @@
                 else {
                     teamSorted.forEach(([team, score], i) => {
                         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-                        teamHtml += `<div class="flex justify-between items-center p-2 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${team}</span></div><span class="font-bold text-success">${score}分</span></div>`;
+                        teamHtml +=
+                            `<div class="flex justify-between items-center p-2 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${team}</span></div><span class="font-bold text-success">${score}分</span></div>`;
                     });
                 }
                 teamTotalBox.innerHTML = teamHtml;
                 document.getElementById('teamTotalRank').classList.remove('hidden');
+
             } else if (rankFilter === 'unit') {
                 const select = document.getElementById('selectedTeam');
                 const team = select.value;
@@ -988,28 +1097,43 @@
                 else {
                     members.forEach((u, i) => {
                         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-                        html += `<div class="flex justify-between items-center p-3 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${u.name}</span></div><span class="font-bold text-success">${u.totalScore || 0}分</span></div>`;
+                        html +=
+                            `<div class="flex justify-between items-center p-3 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${u.name}</span></div><span class="font-bold text-success">${u.totalScore || 0}分</span></div>`;
                     });
                 }
                 rankBox.innerHTML = html;
+
             } else if (rankFilter === 'month' || rankFilter === 'week') {
                 const isMonth = rankFilter === 'month';
-                const periodStart = isMonth ? new Date(now.getFullYear(), now.getMonth(), 1) : (() => { const d = new Date(now); d.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); return d; })();
-                const periodEnd = isMonth ? new Date(now.getFullYear(), now.getMonth() + 1, 0) : now;
+                const periodStart = isMonth ?
+                    new Date(now.getFullYear(), now.getMonth(), 1) :
+                    (() => { const d = new Date(now);
+                        d.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); return d; })();
+                const periodEnd = isMonth ?
+                    new Date(now.getFullYear(), now.getMonth() + 1, 0) :
+                    now;
+
                 const filtered = list.filter(u => {
-                    const checkDate = (dateStr) => { if (!dateStr) return false; try { const d = new Date(dateStr); return d >= periodStart && d <= periodEnd; } catch { return false; } };
+                    const checkDate = (dateStr) => {
+                        if (!dateStr) return false;
+                        try { const d = new Date(dateStr); return d >= periodStart && d <= periodEnd; } catch {
+                            return false; }
+                    };
                     if (checkDate(u.warmupDate)) return true;
                     if (u.rankHistory && u.rankHistory.some(h => checkDate(h.date))) return true;
                     if (u.challengeHistory && u.challengeHistory.some(h => checkDate(h.date))) return true;
                     return false;
                 });
+
                 const sorted = filtered.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0)).slice(0, 10);
-                let html = `<div class="rank-section-title">${isMonth ? '📅 月榜（本月前10）' : '📅 周榜（本周前10）'}</div>`;
+                let html =
+                    `<div class="rank-section-title">${isMonth ? '📅 月榜（本月前10）' : '📅 周榜（本周前10）'}</div>`;
                 if (sorted.length === 0) html += '<p class="text-center text-gray-400 py-4">本月/本周暂无活跃用户</p>';
                 else {
                     sorted.forEach((u, i) => {
                         const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}`;
-                        html += `<div class="flex justify-between items-center p-3 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${u.name}</span><span class="text-gray-400 text-xs ml-1">(${u.unit})</span></div><span class="font-bold text-success">${u.totalScore || 0}分</span></div>`;
+                        html +=
+                            `<div class="flex justify-between items-center p-3 bg-grayLight rounded-lg"><div><span class="font-bold text-primary">${medal}</span><span class="ml-2">${u.name}</span><span class="text-gray-400 text-xs ml-1">(${u.unit})</span></div><span class="font-bold text-success">${u.totalScore || 0}分</span></div>`;
                     });
                 }
                 rankBox.innerHTML = html;
@@ -1017,7 +1141,7 @@
         }
 
         // ============================================================
-        // 管理员后台
+        //  管理员后台
         // ============================================================
         function adminLoginCheck() {
             const pwd = document.getElementById('adminPwd').value.trim();
@@ -1028,13 +1152,16 @@
             } else { alert('密码错误，请重试'); }
         }
 
-        function renderAdminData() {
-            const list = getUsers();
+        async function renderAdminData() {
+            const list = await DB.getUsers();
             const searchVal = document.getElementById('userSearchInput')?.value?.trim().toLowerCase() || '';
             let filtered = list;
-            if (searchVal) filtered = list.filter(u => u.name.toLowerCase().includes(searchVal) || u.unit.toLowerCase().includes(searchVal));
+            if (searchVal) filtered = list.filter(u => u.name.toLowerCase().includes(searchVal) || u.unit.toLowerCase()
+                .includes(searchVal));
+
             let html = '';
-            if (filtered.length === 0) html = '<p class="text-gray-400 text-center py-4">' + (searchVal ? '🔍 未找到匹配用户' : '暂无注册用户') + '</p>';
+            if (filtered.length === 0) html = '<p class="text-gray-400 text-center py-4">' + (searchVal ?
+                '🔍 未找到匹配用户' : '暂无注册用户') + '</p>';
             else {
                 filtered.forEach(u => {
                     html += `<div class="p-2 bg-grayLight rounded text-xs my-1 flex justify-between items-center">
@@ -1046,13 +1173,13 @@
             document.getElementById('userAllList').innerHTML = html;
         }
 
-        function resetUserPassword(userId) {
+        async function resetUserPassword(userId) {
             if (!confirm('确认重置该用户密码为 "123456" 吗？')) return;
-            let users = getUsers();
+            let users = await DB.getUsers();
             const user = users.find(u => u.id === userId);
             if (!user) return alert('用户不存在');
             user.pwd = '123456';
-            saveUsers(users);
+            await DB.saveUsers(users);
             alert(`✅ 用户 "${user.name}" 的密码已重置为 123456，请通知用户登录后修改。`);
             renderAdminData();
         }
@@ -1061,9 +1188,9 @@
             alert('🔑 如忘记密码，请联系管理员重置（重置后默认密码为 123456）。\n管理员入口在注册页面底部。');
         }
 
-        function clearAllUser() {
+        async function clearAllUser() {
             if (!confirm('⚠️ 确定清空所有用户数据？无法恢复！')) return;
-            saveUsers([]);
+            await DB.saveUsers([]);
             renderAdminData();
             alert('已清空所有用户数据');
         }
@@ -1074,12 +1201,53 @@
         }
 
         // ============================================================
-        // 初始化
+        //  配置管理
+        // ============================================================
+        async function saveAdminConfig() {
+            const cfg = {
+                warmup: document.getElementById('toggleWarmup').checked,
+                ranked: document.getElementById('toggleRanked').checked,
+                challenge: document.getElementById('toggleChallenge').checked,
+                timer: document.getElementById('toggleTimer').checked,
+                combo: document.getElementById('toggleCombo').checked,
+                soundEffect: document.getElementById('soundEffectSelect').value
+            };
+            await DB.saveConfig(cfg);
+            document.getElementById('toggleWarmupLabel').textContent = cfg.warmup ? '开启' : '关闭';
+            document.getElementById('toggleRankedLabel').textContent = cfg.ranked ? '开启' : '关闭';
+            document.getElementById('toggleChallengeLabel').textContent = cfg.challenge ? '开启' : '关闭';
+            document.getElementById('toggleTimerLabel').textContent = cfg.timer ? '开启' : '关闭';
+            document.getElementById('toggleComboLabel').textContent = cfg.combo ? '开启' : '关闭';
+            document.getElementById('soundEffectSelect').value = cfg.soundEffect;
+            return cfg;
+        }
+
+        async function loadAdminConfig() {
+            const cfg = await DB.getConfig();
+            document.getElementById('toggleWarmup').checked = cfg.warmup;
+            document.getElementById('toggleRanked').checked = cfg.ranked;
+            document.getElementById('toggleChallenge').checked = cfg.challenge;
+            document.getElementById('toggleTimer').checked = cfg.timer;
+            document.getElementById('toggleCombo').checked = cfg.combo;
+            document.getElementById('soundEffectSelect').value = cfg.soundEffect || 'crisp';
+            document.getElementById('toggleWarmupLabel').textContent = cfg.warmup ? '开启' : '关闭';
+            document.getElementById('toggleRankedLabel').textContent = cfg.ranked ? '开启' : '关闭';
+            document.getElementById('toggleChallengeLabel').textContent = cfg.challenge ? '开启' : '关闭';
+            document.getElementById('toggleTimerLabel').textContent = cfg.timer ? '开启' : '关闭';
+            document.getElementById('toggleComboLabel').textContent = cfg.combo ? '开启' : '关闭';
+            return cfg;
+        }
+
+        // ============================================================
+        //  初始化
         // ============================================================
         function init() {
-            if (!localStorage.getItem('quiz_config')) {
-                DB.saveConfig({ warmup: true, ranked: true, challenge: true, timer: true, combo: true, soundEffect: 'crisp' });
-            }
+            // 检查 API 是否可访问
+            fetch(API_BASE + '/config')
+                .then(res => res.json())
+                .then(() => console.log('✅ 后端 API 连接成功'))
+                .catch(() => console.warn('⚠️ 后端 API 不可用，使用 localStorage 降级模式'));
+
             switchPage('registerPage');
         }
 
