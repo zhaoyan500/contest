@@ -3,1370 +3,415 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>党史知识竞赛</title>
+    <title>党史军史答题闯关挑战</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#c41e3a',
+                        primaryLight: '#e84a5f',
+                        primaryBg: '#fff5f5',
+                        success: '#00B42A',
+                        danger: '#F53F3F',
+                        warning: '#FF7D00',
+                        grayLight: '#f9f2f2'
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* ===== 全局样式 ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-        }
+        /* 全局重置 & 页面切换 */
+        .page { display: none !important; min-height: 100vh; padding-top: 100px; padding-bottom: 60px; }
+        .page.active { display: block !important; }
+        .page.quiz-mode { padding-top: 60px; padding-bottom: 50px; }
+        * { -webkit-tap-highlight-color: transparent; }
+        body { background-color: #f9f2f2; margin: 0; padding: 0; font-size: 16px; }
+        .option-item:active { scale: 0.98; }
+        .modal-box { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 999; }
+        .modal-inner { width: 85%; max-width: 400px; background: white; padding: 24px; border-radius: 12px; text-align: center; border: 2px solid #c41e3a; }
+        input:focus, select:focus { border-color: #c41e3a !important; box-shadow: 0 0 0 2px rgba(196,30,58,0.2); outline: none; }
+        .mode-card { border: 2px solid #f0d0d0; border-radius: 16px; padding: 18px; transition: all 0.2s; background: white; }
+        .mode-card:active { scale: 0.97; }
+        .mode-card .badge { font-size: 11px; padding: 2px 10px; border-radius: 20px; background: #c41e3a; color: white; }
+        .rank-tab { padding: 6px 16px; border-radius: 20px; font-size: 13px; border: 1px solid #ddd; cursor: pointer; transition: all 0.2s; }
+        .rank-tab.active { background: #c41e3a; color: white; border-color: #c41e3a; }
+        .timer-ring { display: inline-block; width: 44px; height: 44px; line-height: 44px; border-radius: 50%; text-align: center; font-weight: bold; font-size: 18px; background: #f0f0f0; color: #333; }
+        .timer-ring.warning { background: #ff6b6b; color: white; }
+        .combo-display { font-size: 13px; padding: 4px 12px; border-radius: 20px; background: #ffeaa7; display: inline-block; }
+        .admin-toggle { display: flex; align-items: center; gap: 12px; margin: 6px 0; }
+        .admin-toggle input[type="checkbox"] { width: 44px; height: 24px; appearance: none; background: #ccc; border-radius: 12px; position: relative; transition: 0.2s; cursor: pointer; flex-shrink: 0; }
+        .admin-toggle input[type="checkbox"]:checked { background: #c41e3a; }
+        .admin-toggle input[type="checkbox"]::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: 0.2s; }
+        .admin-toggle input[type="checkbox"]:checked::after { left: 22px; }
+        .name-hint { font-size: 12px; color: #999; margin-top: 4px; }
+        .rank-section-title { font-weight: bold; color: #c41e3a; margin: 16px 0 8px 0; border-bottom: 1px solid #f0d0d0; padding-bottom: 4px; }
+        #teamSelector { margin: 8px 0 12px 0; }
 
-        body {
-            background: #7a0f1c;
-            background: radial-gradient(circle at 20% 20%, #a51f2e, #5a0a14);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-        }
+        /* 浮动文字 */
+        #floatingTextContainer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; overflow: hidden; }
+        .float-text { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%) scale(0.6); font-size: 2.8rem; font-weight: 900; color: #ff6b6b; text-shadow: 0 4px 20px rgba(255,107,107,0.5), 0 0 10px rgba(255,215,0,0.3); opacity: 0; animation: floatPop 1s ease-out forwards; white-space: nowrap; font-family: 'Comic Sans MS','Chalkboard SE',cursive,sans-serif; }
+        .float-text:nth-child(odd) { color: #feca57; text-shadow: 0 4px 20px rgba(254,202,87,0.6); }
+        .float-text:nth-child(even) { color: #ff6b6b; text-shadow: 0 4px 20px rgba(255,107,107,0.6); }
+        @keyframes floatPop { 0% { transform: translate(-50%,-50%) scale(0.4); opacity: 0; } 20% { transform: translate(-50%,-60%) scale(1.2); opacity: 1; } 60% { transform: translate(-50%,-80%) scale(1.1); opacity: 1; } 100% { transform: translate(-50%,-120%) scale(1); opacity: 0; } }
 
-        /* ===== 卡片容器 ===== */
-        .container {
-            width: 100%;
-            max-width: 420px;
-            background: #fef7e6;
-            border-radius: 40px 40px 32px 32px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 2px #d4a347, 0 0 0 6px #7a0f1c;
-            padding: 24px 20px 32px;
-            position: relative;
-            border: 1px solid #f5d998;
-            min-height: 580px;
-        }
+        /* 音效预览 */
+        .sound-preview-btn { background: #ddd; border: none; border-radius: 20px; padding: 2px 14px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .sound-preview-btn:hover { background: #ccc; }
 
-        .container::before {
-            content: "★";
-            position: absolute;
-            top: -14px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #d4a347;
-            color: #7a0f1c;
-            font-size: 28px;
-            padding: 0 16px;
-            border-radius: 40px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            line-height: 1.4;
-            letter-spacing: 6px;
-        }
+        /* 用户管理 */
+        .user-search-box { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .user-search-box input { flex: 1; min-width: 150px; border: 1px solid #ddd; border-radius: 6px; padding: 6px 12px; font-size: 14px; }
+        .user-search-box input:focus { border-color: #c41e3a; outline: none; box-shadow: 0 0 0 2px rgba(196,30,58,0.2); }
+        .reset-pwd-btn { background: #ffc107; border: none; border-radius: 4px; padding: 2px 10px; font-size: 12px; cursor: pointer; color: #333; transition: 0.2s; }
+        .reset-pwd-btn:hover { background: #e0a800; }
+        .forgot-pwd-link { color: #c41e3a; cursor: pointer; font-size: 13px; text-decoration: underline; }
+        .forgot-pwd-link:hover { color: #a0162e; }
+        .clear-search-btn { background: #e0e0e0; border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .clear-search-btn:hover { background: #d0d0d0; }
+        .user-item-actions { display: flex; gap: 6px; align-items: center; }
+        .user-item-actions .reset-pwd-btn { font-size: 11px; padding: 2px 8px; }
 
-        /* ===== 通用 ===== */
-        .hidden { display: none !important; }
-        .flex-center { display: flex; align-items: center; justify-content: center; }
-        .text-center { text-align: center; }
+        /* 全局页眉 & 页脚 */
+        #globalHeader { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: linear-gradient(135deg, #c41e3a 0%, #8b1a2b 100%); padding: 12px 16px 10px 16px; text-align: center; box-shadow: 0 2px 16px rgba(196,30,58,0.4); border-bottom: 2px solid #feca57; }
+        #globalHeader .header-inner { max-width: 600px; margin: 0 auto; }
+        #globalHeader .title-line1 { font-size: 1.7rem; font-weight: 900; color: #ffffff; letter-spacing: 3px; text-shadow: 0 2px 6px rgba(0,0,0,0.25); line-height: 1.3; }
+        #globalHeader .title-line1 .star { color: #feca57; margin: 0 6px; }
+        #globalHeader .title-line2 { font-size: 1.1rem; color: #feca57; font-weight: 700; letter-spacing: 8px; text-shadow: 0 1px 4px rgba(0,0,0,0.2); margin-top: 2px; }
+        #globalHeader .title-line2 .star { color: #ffffff; margin: 0 6px; }
+        #globalHeader.compact { padding: 6px 16px 4px 16px; border-bottom-width: 1px; }
+        #globalHeader.compact .title-line1 { font-size: 1.1rem; letter-spacing: 2px; }
+        #globalHeader.compact .title-line2 { display: none; }
+        #globalFooter { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: #8b1a2b; padding: 10px 0 9px 0; text-align: center; border-top: 1px solid rgba(254,202,87,0.3); box-shadow: 0 -2px 10px rgba(0,0,0,0.08); }
+        #globalFooter .footer-text { font-size: 0.9rem; color: #feca57; letter-spacing: 4px; font-weight: 600; }
+        .modal-box { z-index: 999; }
 
-        .btn {
-            display: inline-block;
-            background: #d4a347;
-            border: none;
-            border-radius: 60px;
-            padding: 14px 20px;
-            font-size: 18px;
-            font-weight: 700;
-            color: #2c1d0e;
-            box-shadow: 0 6px 0 #8f6a2e, 0 4px 10px rgba(0,0,0,0.2);
-            transition: all 0.08s linear;
-            cursor: pointer;
-            text-align: center;
-            letter-spacing: 1px;
-            border: 1px solid #eec170;
-            width: 100%;
-        }
-        .btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #8f6a2e;
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #8f6a2e;
-            pointer-events: none;
-        }
-        .btn-secondary {
-            background: #b3926a;
-            box-shadow: 0 6px 0 #7a5f3e;
-            color: #fef7e6;
-            border-color: #c9a87a;
-        }
-        .btn-restart {
-            background: #7a0f1c;
-            box-shadow: 0 6px 0 #4a0a10;
-            color: #f5d998;
-            border-color: #a51f2e;
-        }
-        .btn-success {
-            background: #2a6b2a;
-            box-shadow: 0 6px 0 #1a4a1a;
-            color: #fff;
-            border-color: #3a8a3a;
-        }
-        .btn-gold {
-            background: #b8862c;
-            box-shadow: 0 6px 0 #7a5a1a;
-            color: #fff;
-            border-color: #d4a347;
-        }
-
-        .input-group {
-            margin-bottom: 16px;
-        }
-        .input-group label {
-            display: block;
-            font-size: 15px;
-            font-weight: 600;
-            color: #3e2a1a;
-            margin-bottom: 6px;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: 30px;
-            border: 2px solid #dac29c;
-            background: #fffcf3;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .input-group input:focus {
-            border-color: #b8862c;
-        }
-
-        .error-msg {
-            color: #a12b2b;
-            font-size: 14px;
-            margin-top: 6px;
-            min-height: 20px;
-        }
-
-        /* ===== 登录/注册界面 ===== */
-        #authPage {
-            padding-top: 20px;
-        }
-        #authPage .title {
-            font-size: 28px;
-            font-weight: 700;
-            text-align: center;
-            color: #3e2a1a;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, #b8862c, #7a4a1a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        #authPage .subtitle {
-            text-align: center;
-            color: #7a5f3e;
-            margin-bottom: 24px;
-            font-size: 15px;
-        }
-        .auth-tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .auth-tabs .tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: 600;
-            background: #ebdcc8;
-            color: #5a3f28;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-        .auth-tabs .tab.active {
-            background: #7a0f1c;
-            color: #f5d998;
-            border-color: #d4a347;
-        }
-        .auth-form .btn {
-            margin-top: 8px;
-        }
-        .auth-form .extra-link {
-            text-align: center;
-            margin-top: 12px;
-            font-size: 14px;
-            color: #7a5f3e;
-        }
-        .auth-form .extra-link span {
-            color: #7a0f1c;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
-        /* ===== 主页头部 ===== */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #d4a347;
-            color: #3e2a1a;
-        }
-        .header .title {
-            font-size: 20px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #b8862c, #7a4a1a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .header .user-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #5a3f28;
-        }
-        .header .user-info .username {
-            font-weight: 600;
-            color: #3e2a1a;
-            max-width: 80px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .header .user-info .logout-btn {
-            background: none;
-            border: none;
-            color: #7a0f1c;
-            font-size: 13px;
-            cursor: pointer;
-            text-decoration: underline;
-            padding: 0 4px;
-        }
-
-        .score-board {
-            background: #3e2a1a;
-            color: #f5d998;
-            padding: 6px 16px;
-            border-radius: 30px;
-            font-size: 18px;
-            font-weight: 600;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .score-board span { color: #ffd966; font-size: 20px; }
-
-        /* ===== 进度 & 计时 ===== */
-        .progress-area {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-            color: #5a3f28;
-            font-weight: 500;
-            background: #ebdcc8;
-            padding: 6px 14px;
-            border-radius: 40px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .question-counter {
-            background: #7a0f1c;
-            color: #f5d998;
-            padding: 2px 16px;
-            border-radius: 30px;
-            font-size: 14px;
-        }
-        .timer {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: #2d1d10;
-            color: #f5d998;
-            padding: 2px 16px 2px 12px;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: 600;
-            box-shadow: inset 0 -2px 0 #b8862c;
-        }
-
-        /* ===== 题目卡片 ===== */
-        .question-card {
-            background: #fffcf3;
-            border-radius: 28px;
-            padding: 18px 16px 14px;
-            margin-bottom: 16px;
-            box-shadow: 0 6px 0 #b8862c, 0 10px 20px rgba(0,0,0,0.12);
-            border: 1px solid #e7d4b0;
-        }
-        .question-text {
-            font-size: 19px;
-            font-weight: 600;
-            line-height: 1.5;
-            color: #2c1d0e;
-            margin-bottom: 14px;
-        }
-        .options {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .option-item {
-            background: #f5ede0;
-            border: 2px solid #dac29c;
-            border-radius: 60px;
-            padding: 10px 16px;
-            font-size: 16px;
-            font-weight: 500;
-            color: #2c1d0e;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.15s;
-            box-shadow: 0 3px 0 #b3926a;
-            cursor: pointer;
-        }
-        .option-item:active {
-            transform: scale(0.97);
-            box-shadow: 0 1px 0 #b3926a;
-        }
-        .option-prefix {
-            display: inline-block;
-            width: 26px;
-            height: 26px;
-            background: #7a0f1c;
-            color: #f5d998;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 26px;
-            font-weight: 700;
-            font-size: 14px;
-            flex-shrink: 0;
-            box-shadow: 0 2px 0 #4d0a12;
-        }
-        .option-item.correct {
-            background: #b7d7b0;
-            border-color: #2a6b2a;
-            box-shadow: 0 3px 0 #1f521f;
-        }
-        .option-item.correct .option-prefix { background: #1f6b1f; }
-        .option-item.wrong {
-            background: #f5b5b5;
-            border-color: #a12b2b;
-            box-shadow: 0 3px 0 #711b1b;
-        }
-        .option-item.wrong .option-prefix { background: #a12b2b; }
-        .option-item.disabled {
-            pointer-events: none;
-            opacity: 0.7;
-        }
-
-        /* ===== 按钮组 ===== */
-        .action-bar {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .action-bar .btn { font-size: 15px; padding: 12px 8px; flex: 1; }
-
-        /* ===== 消息 ===== */
-        .message-box {
-            margin-top: 14px;
-            padding: 10px 14px;
-            background: #ebdcc8;
-            border-radius: 40px;
-            font-size: 15px;
-            color: #3e2a1a;
-            text-align: center;
-            border-left: 6px solid #b8862c;
-            font-weight: 500;
-            min-height: 46px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ===== 完成界面 ===== */
-        .finish-screen {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            padding: 16px 0 10px;
-        }
-        .finish-screen .trophy { font-size: 64px; margin-bottom: 6px; }
-        .finish-screen .final-score {
-            font-size: 40px;
-            font-weight: 800;
-            background: #3e2a1a;
-            padding: 4px 36px;
-            border-radius: 60px;
-            color: #f5d998;
-            margin: 6px 0 10px;
-        }
-        .finish-screen .finish-msg {
-            font-size: 18px;
-            color: #3e2a1a;
-            background: #ebdcc8;
-            padding: 6px 20px;
-            border-radius: 60px;
-        }
-        .finish-screen .btn { margin-top: 12px; max-width: 280px; }
-
-        /* ===== 排行榜 ===== */
-        .rank-section {
-            margin-top: 16px;
-            border-top: 2px solid #d4a347;
-            padding-top: 14px;
-        }
-        .rank-section .rank-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #3e2a1a;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .rank-list {
-            max-height: 200px;
-            overflow-y: auto;
-            background: #f5ede0;
-            border-radius: 16px;
-            padding: 6px 0;
-        }
-        .rank-item {
-            display: flex;
-            align-items: center;
-            padding: 8px 16px;
-            border-bottom: 1px solid #e7d4b0;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .rank-item:hover {
-            background: #ebdcc8;
-        }
-        .rank-item:last-child { border-bottom: none; }
-        .rank-item .rank-num {
-            width: 28px;
-            font-weight: 700;
-            color: #7a0f1c;
-        }
-        .rank-item .rank-name {
-            flex: 1;
-            font-weight: 500;
-            color: #3e2a1a;
-        }
-        .rank-item .rank-score {
-            font-weight: 700;
-            color: #b8862c;
-        }
-        .rank-item .cert-badge {
-            margin-left: 8px;
-            font-size: 16px;
-            opacity: 0.6;
-            transition: opacity 0.2s;
-        }
-        .rank-item:hover .cert-badge {
-            opacity: 1;
-        }
-        .rank-item.me {
-            background: #ebdcc8;
-            border-radius: 8px;
-            border-left: 4px solid #b8862c;
-        }
-        .rank-empty {
-            text-align: center;
-            color: #7a5f3e;
-            padding: 20px 0;
-            font-size: 14px;
-        }
-
-        /* ===== 证书弹窗 ===== */
-        .cert-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-            backdrop-filter: blur(4px);
-        }
-        .cert-overlay.show {
-            display: flex;
-        }
-        .cert-card {
-            background: #fef7e6;
-            border-radius: 32px;
-            padding: 32px 28px 28px;
-            max-width: 400px;
-            width: 100%;
-            border: 6px solid #d4a347;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-            position: relative;
-            text-align: center;
-        }
-        .cert-card .cert-badge-top {
-            font-size: 56px;
-            margin-bottom: 4px;
-        }
-        .cert-card .cert-title {
-            font-size: 26px;
-            font-weight: 800;
-            color: #7a0f1c;
-            letter-spacing: 4px;
-            margin-bottom: 4px;
-        }
-        .cert-card .cert-subtitle {
-            font-size: 14px;
-            color: #7a5f3e;
-            border-bottom: 2px solid #d4a347;
-            padding-bottom: 12px;
-            margin-bottom: 12px;
-        }
-        .cert-card .cert-name {
-            font-size: 32px;
-            font-weight: 700;
-            color: #3e2a1a;
-            margin: 8px 0;
-        }
-        .cert-card .cert-score {
-            font-size: 48px;
-            font-weight: 800;
-            color: #b8862c;
-            background: #3e2a1a;
-            display: inline-block;
-            padding: 4px 32px;
-            border-radius: 60px;
-            color: #f5d998;
-            margin: 8px 0;
-        }
-        .cert-card .cert-desc {
-            font-size: 15px;
-            color: #5a3f28;
-            margin: 8px 0 4px;
-            line-height: 1.6;
-        }
-        .cert-card .cert-footer {
-            margin-top: 16px;
-            padding-top: 12px;
-            border-top: 2px solid #d4a347;
-            font-size: 13px;
-            color: #7a5f3e;
-            display: flex;
-            justify-content: space-between;
-        }
-        .cert-card .cert-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .cert-card .cert-actions .btn {
-            font-size: 15px;
-            padding: 10px 16px;
-            flex: 1;
-        }
-        .cert-card .close-cert {
-            position: absolute;
-            top: 12px;
-            right: 18px;
-            font-size: 28px;
-            cursor: pointer;
-            color: #7a5f3e;
-            background: none;
-            border: none;
-            transition: transform 0.2s;
-        }
-        .cert-card .close-cert:hover {
-            transform: rotate(90deg);
-        }
-
-        /* ===== 响应式 ===== */
-        @media (max-width: 400px) {
-            .container { padding: 16px; }
-            .header .title { font-size: 17px; }
-            .question-text { font-size: 16px; }
-            .option-item { font-size: 14px; padding: 8px 12px; }
-            .btn { font-size: 14px; padding: 10px 6px; }
-            .score-board { font-size: 15px; padding: 4px 12px; }
-            .cert-card { padding: 24px 16px; }
-            .cert-card .cert-name { font-size: 24px; }
-            .cert-card .cert-score { font-size: 36px; }
+        @media (max-width: 480px) {
+            #globalHeader .title-line1 { font-size: 1.3rem; letter-spacing: 2px; }
+            #globalHeader .title-line2 { font-size: 0.9rem; letter-spacing: 6px; }
+            #globalHeader.compact .title-line1 { font-size: 0.9rem; }
+            .page { padding-top: 90px; padding-bottom: 50px; }
+            .page.quiz-mode { padding-top: 54px; padding-bottom: 42px; }
+            #globalFooter .footer-text { font-size: 0.75rem; letter-spacing: 2px; }
+        }
+        @media (max-width: 380px) {
+            #globalHeader .title-line1 { font-size: 1.0rem; }
+            #globalHeader .title-line2 { font-size: 0.75rem; letter-spacing: 4px; }
+            #globalHeader.compact .title-line1 { font-size: 0.75rem; }
+            .page { padding-top: 76px; padding-bottom: 44px; }
+            .page.quiz-mode { padding-top: 46px; padding-bottom: 38px; }
         }
     </style>
 </head>
 <body>
 
-<div class="container" id="app">
-    <!-- ============================================================ -->
-    <!-- 1. 登录 / 注册 界面 -->
-    <!-- ============================================================ -->
-    <div id="authPage">
-        <div class="title">📖 党史竞答</div>
-        <div class="subtitle">传承红色基因 · 汲取奋进力量</div>
-
-        <div class="auth-tabs">
-            <div class="tab active" data-tab="login" onclick="switchAuthTab('login')">登录</div>
-            <div class="tab" data-tab="register" onclick="switchAuthTab('register')">注册</div>
+    <!-- 全局页眉 -->
+    <header id="globalHeader">
+        <div class="header-inner">
+            <div class="title-line1"><span class="star">✦</span> 天天答题 · 周周闯关 <span class="star">✦</span></div>
+            <div class="title-line2"><span class="star">★</span> 学习之星 · 等你挑战 <span class="star">★</span></div>
         </div>
+    </header>
 
-        <!-- 登录表单 -->
-        <div id="loginForm" class="auth-form">
-            <div class="input-group">
-                <label>用户名</label>
-                <input type="text" id="loginUsername" placeholder="请输入用户名" />
-            </div>
-            <div class="input-group">
-                <label>密码</label>
-                <input type="password" id="loginPassword" placeholder="请输入密码" />
-            </div>
-            <div class="error-msg" id="loginError"></div>
-            <button class="btn btn-success" onclick="handleLogin()">登 录</button>
-            <div class="extra-link">还没有账号？<span onclick="switchAuthTab('register')">立即注册</span></div>
-        </div>
+    <!-- 全局页脚 -->
+    <footer id="globalFooter"><div class="footer-text">— 张思德传人公众号制作 —</div></footer>
 
-        <!-- 注册表单 -->
-        <div id="registerForm" class="auth-form hidden">
-            <div class="input-group">
-                <label>用户名</label>
-                <input type="text" id="registerUsername" placeholder="请设置用户名" />
-            </div>
-            <div class="input-group">
-                <label>密码</label>
-                <input type="password" id="registerPassword" placeholder="请设置密码（至少4位）" />
-            </div>
-            <div class="error-msg" id="registerError"></div>
-            <button class="btn btn-success" onclick="handleRegister()">注 册</button>
-            <div class="extra-link">已有账号？<span onclick="switchAuthTab('login')">去登录</span></div>
+    <!-- 浮动文字容器 -->
+    <div id="floatingTextContainer"></div>
+
+    <!-- 弹窗容器 -->
+    <div id="welcomeModal" class="modal-box hidden">
+        <div class="modal-inner">
+            <h3 class="text-lg font-bold text-primary mb-4">📩 战队欢迎信函</h3>
+            <p id="modalText" class="text-base mb-6 leading-relaxed"></p>
+            <button onclick="closeModal()" class="w-full bg-primary text-white py-2 rounded-lg">立即开始闯关</button>
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- 2. 主答题界面 (登录后显示) -->
-    <!-- ============================================================ -->
-    <div id="mainPage" class="hidden">
-        <!-- 头部 -->
-        <div class="header">
-            <div class="title">📖 党史竞答</div>
-            <div class="user-info">
-                <span class="username" id="displayUsername">用户</span>
-                <button class="logout-btn" onclick="handleLogout()">退出</button>
-            </div>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div class="score-board">🏆 总分 <span id="totalScore">0</span></div>
-            <div class="score-board" style="background:#5a3f28;">📊 <span id="roundScore">0</span> (本轮)</div>
-        </div>
-
-        <!-- 进度 & 计时 -->
-        <div class="progress-area">
-            <div class="question-counter" id="progressText">1 / 10</div>
-            <div class="timer">⏱️ <span id="timeLeft">30</span>s</div>
-        </div>
-
-        <!-- 答题区 -->
-        <div id="quizArea">
-            <div class="question-card">
-                <div class="question-text" id="questionText">加载题目中...</div>
-                <div class="options" id="optionsContainer"></div>
-            </div>
-
-            <div class="action-bar">
-                <button class="btn btn-secondary" id="prevBtn" disabled>◀ 上一题</button>
-                <button class="btn" id="nextBtn">下一题 ▶</button>
-                <button class="btn btn-restart" id="restartBtn">⟳ 重来</button>
-            </div>
-
-            <div class="message-box" id="messageBox">💡 点击选项作答</div>
-        </div>
-
-        <!-- 完成界面 -->
-        <div class="finish-screen" id="finishScreen">
-            <div class="trophy">🎖️</div>
-            <div class="final-score" id="finalScore">0</div>
-            <div class="finish-msg" id="finishMsg">本轮完成！</div>
-            <button class="btn btn-restart" id="restartFromFinishBtn">⟳ 再来一轮</button>
-        </div>
-
-        <!-- ===== 排行榜 ===== -->
-        <div class="rank-section">
-            <div class="rank-title">🏅 积分排行榜 <span style="font-size:12px;font-weight:400;color:#7a5f3e;">（点击姓名生成证书）</span></div>
-            <div class="rank-list" id="rankList">
-                <div class="rank-empty">暂无数据</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- 证书弹窗 -->
-<!-- ============================================================ -->
-<div class="cert-overlay" id="certOverlay" onclick="closeCert(event)">
-    <div class="cert-card" id="certCard">
-        <button class="close-cert" onclick="closeCert()">✕</button>
-        <div class="cert-badge-top">📜</div>
-        <div class="cert-title">党史学习证书</div>
-        <div class="cert-subtitle">—— 不忘初心 牢记使命 ——</div>
-        <div class="cert-name" id="certName">——</div>
-        <div style="font-size:14px;color:#5a3f28;">累积积分</div>
-        <div class="cert-score" id="certScore">0</div>
-        <div class="cert-desc" id="certDesc">恭喜你完成党史知识学习，<br>展现了优异的理论素养！</div>
-        <div class="cert-footer">
-            <span>📅 颁发日期: <span id="certDate">2024-01-01</span></span>
-            <span>⭐ 党史竞答</span>
-        </div>
-        <div class="cert-actions">
-            <button class="btn btn-secondary" onclick="closeCert()">关闭</button>
-            <button class="btn btn-gold" onclick="downloadCert()">📥 下载证书</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    // ================================================================
-    //  数据层 - 使用 localStorage 持久化
-    // ================================================================
-
-    const STORAGE_KEY = 'partyQuizData';
-
-    function getStorage() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const data = JSON.parse(raw);
-                if (!data.users) data.users = {};
-                if (!data.currentUser) data.currentUser = null;
-                return data;
-            }
-        } catch (e) { /* ignore */ }
-        return { users: {}, currentUser: null };
-    }
-
-    function saveStorage(data) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    function getCurrentUser() {
-        const store = getStorage();
-        if (!store.currentUser) return null;
-        const user = store.users[store.currentUser];
-        if (!user) return null;
-        return { username: store.currentUser, ...user };
-    }
-
-    function addScoreToCurrentUser(roundScore) {
-        const store = getStorage();
-        if (!store.currentUser) return;
-        if (!store.users[store.currentUser]) {
-            store.users[store.currentUser] = { password: '', totalScore: 0 };
-        }
-        store.users[store.currentUser].totalScore += roundScore;
-        saveStorage(store);
-    }
-
-    function getRanking() {
-        const store = getStorage();
-        const users = store.users || {};
-        const arr = Object.keys(users).map(name => ({
-            username: name,
-            totalScore: users[name].totalScore || 0
-        }));
-        arr.sort((a, b) => b.totalScore - a.totalScore);
-        return arr;
-    }
-
-    // ================================================================
-    //  大型题库 (30道)
-    // ================================================================
-    const FULL_QUESTION_BANK = [
-        { question: "中国共产党第一次全国代表大会在哪一年召开？", options: ["1920年", "1921年", "1922年", "1923年"], answer: 1 },
-        { question: "党的最高理想和最终目标是什么？", options: ["实现社会主义现代化", "实现中华民族伟大复兴", "实现共产主义", "全面建成小康社会"], answer: 2 },
-        { question: "长征途中，红军翻越的第一座大雪山是？", options: ["夹金山", "岷山", "六盘山", "乌蒙山"], answer: 0 },
-        { question: "抗日战争中，平型关大捷是八路军哪支部队取得的？", options: ["115师", "120师", "129师", "新四军"], answer: 0 },
-        { question: "中华人民共和国成立的时间是？", options: ["1949年10月1日", "1950年10月1日", "1948年10月1日", "1949年9月1日"], answer: 0 },
-        { question: "哪次会议确立了以毛泽东为核心的党中央领导？", options: ["八七会议", "遵义会议", "瓦窑堡会议", "洛川会议"], answer: 1 },
-        { question: "“两弹一星”精神中不包括以下哪项？", options: ["热爱祖国", "自力更生", "艰苦奋斗", "对外开放"], answer: 3 },
-        { question: "改革开放始于哪一年？", options: ["1976年", "1978年", "1980年", "1982年"], answer: 1 },
-        { question: "中国共产党人的初心和使命是什么？", options: ["实现共同富裕", "为中国人民谋幸福，为中华民族谋复兴", "实现现代化", "建设社会主义强国"], answer: 1 },
-        { question: "党在新时代的强军目标是什么？", options: ["建设信息化军队", "建设世界一流军队", "听党指挥、能打胜仗、作风优良", "打赢局部战争"], answer: 2 },
-        { question: "五四运动爆发于哪一年？", options: ["1917年", "1918年", "1919年", "1920年"], answer: 2 },
-        { question: "中国共产党第二次全国代表大会提出了什么纲领？", options: ["民主革命纲领", "社会主义革命纲领", "共产主义纲领", "抗日救国纲领"], answer: 0 },
-        { question: "南昌起义发生在哪一年？", options: ["1925年", "1926年", "1927年", "1928年"], answer: 2 },
-        { question: "井冈山革命根据地创建于哪一年？", options: ["1926年", "1927年", "1928年", "1929年"], answer: 1 },
-        { question: "红军长征胜利结束的标志性事件是？", options: ["遵义会议", "吴起镇会师", "会宁会师", "延安会师"], answer: 2 },
-        { question: "西安事变和平解决的历史意义是？", options: ["标志着国共合作形成", "标志着抗日民族统一战线初步形成", "标志着抗战开始", "标志着国共内战结束"], answer: 1 },
-        { question: "百团大战发生在哪一年？", options: ["1938年", "1939年", "1940年", "1941年"], answer: 2 },
-        { question: "中共七大召开的时间和地点是？", options: ["1945年 延安", "1945年 重庆", "1946年 延安", "1946年 西柏坡"], answer: 0 },
-        { question: "三大战役中，最先打响的是？", options: ["辽沈战役", "淮海战役", "平津战役", "渡江战役"], answer: 0 },
-        { question: "中华人民共和国国旗的设计者是？", options: ["徐悲鸿", "梁思成", "曾联松", "林徽因"], answer: 2 },
-        { question: "抗美援朝战争爆发于哪一年？", options: ["1949年", "1950年", "1951年", "1952年"], answer: 1 },
-        { question: "“两弹一星”的“两弹”指的是？", options: ["原子弹和氢弹", "原子弹和导弹", "氢弹和导弹", "原子弹和核弹"], answer: 1 },
-        { question: "袁隆平被誉为？", options: ["中国航天之父", "中国杂交水稻之父", "中国核潜艇之父", "中国桥梁之父"], answer: 1 },
-        { question: "恢复中华人民共和国在联合国合法席位的时间是？", options: ["1970年", "1971年", "1972年", "1973年"], answer: 1 },
-        { question: "经济特区中，最早成立的是？", options: ["深圳", "珠海", "汕头", "厦门"], answer: 0 },
-        { question: "香港回归祖国是在哪一年？", options: ["1995年", "1996年", "1997年", "1998年"], answer: 2 },
-        { question: "澳门回归祖国是在哪一年？", options: ["1997年", "1998年", "1999年", "2000年"], answer: 2 },
-        { question: "神舟五号载人飞船成功发射的时间是？", options: ["2001年", "2002年", "2003年", "2004年"], answer: 2 },
-        { question: "北京奥运会举办于哪一年？", options: ["2006年", "2007年", "2008年", "2009年"], answer: 2 },
-        { question: "中国梦的核心内涵是？", options: ["实现中华民族伟大复兴", "实现全面小康社会", "实现社会主义现代化", "实现共同富裕"], answer: 0 }
-    ];
-
-    const ROUND_SIZE = 10;
-
-    // ================================================================
-    //  应用状态 (UI)
-    // ================================================================
-    let state = {
-        currentIndex: 0,
-        userAnswers: [],
-        roundScore: 0,
-        timeLeft: 30,
-        isFinished: false,
-        questions: [],
-        timerInterval: null,
-        message: '💡 点击选项作答'
-    };
-
-    // DOM 引用
-    const $ = id => document.getElementById(id);
-    const authPage = $('authPage');
-    const mainPage = $('mainPage');
-    const loginForm = $('loginForm');
-    const registerForm = $('registerForm');
-    const loginUsername = $('loginUsername');
-    const loginPassword = $('loginPassword');
-    const registerUsername = $('registerUsername');
-    const registerPassword = $('registerPassword');
-    const loginError = $('loginError');
-    const registerError = $('registerError');
-    const displayUsername = $('displayUsername');
-    const totalScore = $('totalScore');
-    const roundScoreEl = $('roundScore');
-    const progressText = $('progressText');
-    const timeLeftSpan = $('timeLeft');
-    const questionText = $('questionText');
-    const optionsContainer = $('optionsContainer');
-    const messageBox = $('messageBox');
-    const prevBtn = $('prevBtn');
-    const nextBtn = $('nextBtn');
-    const restartBtn = $('restartBtn');
-    const restartFromFinishBtn = $('restartFromFinishBtn');
-    const finishScreen = $('finishScreen');
-    const finalScore = $('finalScore');
-    const finishMsg = $('finishMsg');
-    const quizArea = $('quizArea');
-    const rankList = $('rankList');
-
-    // 证书相关
-    const certOverlay = $('certOverlay');
-    const certName = $('certName');
-    const certScore = $('certScore');
-    const certDesc = $('certDesc');
-    const certDate = $('certDate');
-    let currentCertUser = null;
-
-    // ================================================================
-    //  认证模块
-    // ================================================================
-    function switchAuthTab(tab) {
-        document.querySelectorAll('.auth-tabs .tab').forEach(el => {
-            el.classList.toggle('active', el.dataset.tab === tab);
-        });
-        if (tab === 'login') {
-            loginForm.classList.remove('hidden');
-            registerForm.classList.add('hidden');
-            loginError.textContent = '';
-        } else {
-            loginForm.classList.add('hidden');
-            registerForm.classList.remove('hidden');
-            registerError.textContent = '';
-        }
-    }
-
-    function handleLogin() {
-        const username = loginUsername.value.trim();
-        const password = loginPassword.value.trim();
-        loginError.textContent = '';
-        if (!username || !password) {
-            loginError.textContent = '请填写用户名和密码';
-            return;
-        }
-        const store = getStorage();
-        const user = store.users[username];
-        if (!user) {
-            loginError.textContent = '用户不存在，请先注册';
-            return;
-        }
-        if (user.password !== password) {
-            loginError.textContent = '密码错误';
-            return;
-        }
-        store.currentUser = username;
-        saveStorage(store);
-        enterMainApp(username);
-    }
-
-    function handleRegister() {
-        const username = registerUsername.value.trim();
-        const password = registerPassword.value.trim();
-        registerError.textContent = '';
-        if (!username || !password) {
-            registerError.textContent = '请填写用户名和密码';
-            return;
-        }
-        if (password.length < 4) {
-            registerError.textContent = '密码至少4位';
-            return;
-        }
-        const store = getStorage();
-        if (store.users[username]) {
-            registerError.textContent = '用户名已存在';
-            return;
-        }
-        store.users[username] = { password, totalScore: 0 };
-        store.currentUser = username;
-        saveStorage(store);
-        enterMainApp(username);
-    }
-
-    function enterMainApp(username) {
-        authPage.classList.add('hidden');
-        mainPage.classList.remove('hidden');
-        displayUsername.textContent = username;
-        const user = getCurrentUser();
-        totalScore.textContent = user ? user.totalScore : 0;
-        initGame();
-        renderRanking();
-    }
-
-    function handleLogout() {
-        if (state.timerInterval) {
-            clearInterval(state.timerInterval);
-            state.timerInterval = null;
-        }
-        const store = getStorage();
-        store.currentUser = null;
-        saveStorage(store);
-        authPage.classList.remove('hidden');
-        mainPage.classList.add('hidden');
-        loginUsername.value = '';
-        loginPassword.value = '';
-        registerUsername.value = '';
-        registerPassword.value = '';
-        loginError.textContent = '';
-        registerError.textContent = '';
-        state.isFinished = false;
-        state.roundScore = 0;
-        finishScreen.style.display = 'none';
-        quizArea.classList.remove('hidden');
-    }
-
-    // ================================================================
-    //  游戏核心逻辑
-    // ================================================================
-
-    function shuffleArray(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    }
-
-    function pickRandomQuestions(bank, count) {
-        const pool = bank.map(q => ({ ...q, options: [...q.options] }));
-        const shuffledPool = shuffleArray(pool);
-        const selected = shuffledPool.slice(0, count);
-        return selected.map(q => {
-            const opts = [...q.options];
-            const correctText = opts[q.answer];
-            const shuffledOpts = shuffleArray([...opts]);
-            const newAnswer = shuffledOpts.indexOf(correctText);
-            return {
-                question: q.question,
-                options: shuffledOpts,
-                answer: newAnswer
-            };
-        });
-    }
-
-    function initGame() {
-        state.questions = pickRandomQuestions(FULL_QUESTION_BANK, ROUND_SIZE);
-        state.currentIndex = 0;
-        state.userAnswers = new Array(state.questions.length).fill(null);
-        state.roundScore = 0;
-        state.isFinished = false;
-        state.timeLeft = 30;
-        state.message = '💡 点击选项作答';
-
-        if (state.timerInterval) {
-            clearInterval(state.timerInterval);
-            state.timerInterval = null;
-        }
-
-        finishScreen.style.display = 'none';
-        quizArea.classList.remove('hidden');
-        roundScoreEl.textContent = '0';
-        renderQuestion(state.currentIndex);
-        updateProgressAndScore();
-        startTimer();
-        updateMessage(state.message);
-        prevBtn.disabled = true;
-        nextBtn.disabled = false;
-        nextBtn.textContent = '下一题 ▶';
-    }
-
-    function renderQuestion(index) {
-        const q = state.questions[index];
-        if (!q) return;
-        questionText.textContent = q.question;
-        const letters = ['A', 'B', 'C', 'D'];
-        let html = '';
-        q.options.forEach((opt, idx) => {
-            let cls = '';
-            const selected = state.userAnswers[index];
-            if (selected !== null) {
-                cls = 'disabled';
-                if (idx === q.answer) {
-                    cls += ' correct';
-                } else if (idx === selected && selected !== q.answer) {
-                    cls += ' wrong';
-                }
-            }
-            html += `
-                <div class="option-item ${cls}" data-option-index="${idx}" data-question-index="${index}">
-                    <span class="option-prefix">${letters[idx]}</span>
-                    <span>${opt}</span>
+    <!-- ======== 登录页 ======== -->
+    <div id="loginPage" class="page">
+        <div class="max-w-md mx-auto pt-6 p-5">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-[22px] font-bold text-primary text-center mb-6">账号登录</h2>
+                <div class="mb-5">
+                    <label class="block text-gray-700 mb-2 font-medium">注册姓名</label>
+                    <input type="text" id="loginName" placeholder="输入注册时填写的姓名" class="w-full border border-gray-300 rounded-lg px-4 py-3">
                 </div>
-            `;
-        });
-        optionsContainer.innerHTML = html;
-
-        document.querySelectorAll('.option-item').forEach(el => {
-            el.addEventListener('click', onOptionClick);
-        });
-
-        prevBtn.disabled = (index === 0);
-        if (index === state.questions.length - 1) {
-            const allAnswered = state.userAnswers.every(a => a !== null);
-            nextBtn.textContent = allAnswered ? '🏁 完成' : '下一题 ▶';
-        } else {
-            nextBtn.textContent = '下一题 ▶';
-        }
-
-        if (state.userAnswers[index] !== null) {
-            const ans = state.userAnswers[index];
-            if (ans === -1) {
-                updateMessage('⏰ 本题超时未答');
-            } else if (ans === q.answer) {
-                updateMessage('✅ 回答正确！');
-            } else {
-                updateMessage(`❌ 正确答案是 ${letters[q.answer]}`);
-            }
-        } else {
-            updateMessage(state.message || '💡 点击选项作答');
-        }
-    }
-
-    function onOptionClick(e) {
-        const el = e.currentTarget;
-        const qIndex = parseInt(el.dataset.questionIndex);
-        const optIndex = parseInt(el.dataset.optionIndex);
-        if (state.userAnswers[qIndex] !== null || state.isFinished) return;
-
-        state.userAnswers[qIndex] = optIndex;
-        const q = state.questions[qIndex];
-        if (optIndex === q.answer) {
-            state.roundScore++;
-            roundScoreEl.textContent = state.roundScore;
-            updateMessage('✅ 回答正确！');
-        } else {
-            updateMessage(`❌ 正确答案是 ${['A','B','C','D'][q.answer]}`);
-        }
-
-        renderQuestion(qIndex);
-        updateProgressAndScore();
-
-        const allAnswered = state.userAnswers.every(a => a !== null);
-        if (allAnswered) {
-            showFinishScreen();
-        } else {
-            if (qIndex === state.questions.length - 1) {
-                nextBtn.textContent = '🏁 完成';
-            }
-        }
-        resetTimer();
-    }
-
-    function showFinishScreen() {
-        if (state.timerInterval) {
-            clearInterval(state.timerInterval);
-            state.timerInterval = null;
-        }
-        state.isFinished = true;
-        quizArea.classList.add('hidden');
-        finishScreen.style.display = 'flex';
-        finalScore.textContent = state.roundScore;
-        const total = state.questions.length;
-        const pct = state.roundScore / total;
-        if (pct >= 0.8) finishMsg.textContent = '🌟 党史达人！';
-        else if (pct >= 0.5) finishMsg.textContent = '👍 继续加油！';
-        else finishMsg.textContent = '📖 多多学习！';
-
-        if (state.roundScore > 0) {
-            addScoreToCurrentUser(state.roundScore);
-            const user = getCurrentUser();
-            totalScore.textContent = user ? user.totalScore : 0;
-            renderRanking();
-        }
-    }
-
-    function goToNext() {
-        const allAnswered = state.userAnswers.every(a => a !== null);
-        if (allAnswered && state.currentIndex === state.questions.length - 1) {
-            showFinishScreen();
-            return;
-        }
-        if (state.currentIndex < state.questions.length - 1) {
-            if (state.userAnswers[state.currentIndex] === null) {
-                updateMessage('⚠️ 请先回答本题！');
-                return;
-            }
-            state.currentIndex++;
-            renderQuestion(state.currentIndex);
-            updateProgressAndScore();
-            resetTimer();
-            prevBtn.disabled = (state.currentIndex === 0);
-            if (state.currentIndex === state.questions.length - 1) {
-                const allAns = state.userAnswers.every(a => a !== null);
-                nextBtn.textContent = allAns ? '🏁 完成' : '下一题 ▶';
-            } else {
-                nextBtn.textContent = '下一题 ▶';
-            }
-        } else {
-            if (allAnswered) {
-                showFinishScreen();
-            } else {
-                updateMessage('⚠️ 还有题目未作答！');
-            }
-        }
-    }
-
-    function goToPrev() {
-        if (state.currentIndex > 0) {
-            state.currentIndex--;
-            renderQuestion(state.currentIndex);
-            updateProgressAndScore();
-            resetTimer();
-            prevBtn.disabled = (state.currentIndex === 0);
-            nextBtn.textContent = '下一题 ▶';
-        }
-    }
-
-    function restartRound() {
-        if (state.timerInterval) {
-            clearInterval(state.timerInterval);
-            state.timerInterval = null;
-        }
-        initGame();
-    }
-
-    // ================================================================
-    //  计时器
-    // ================================================================
-    function startTimer() {
-        if (state.timerInterval) {
-            clearInterval(state.timerInterval);
-        }
-        state.timeLeft = 30;
-        timeLeftSpan.textContent = state.timeLeft;
-        state.timerInterval = setInterval(() => {
-            state.timeLeft--;
-            timeLeftSpan.textContent = state.timeLeft;
-            if (state.timeLeft <= 0) {
-                handleTimeout();
-            }
-        }, 1000);
-    }
-
-    function resetTimer() {
-        clearInterval(state.timerInterval);
-        startTimer();
-    }
-
-    function handleTimeout() {
-        const idx = state.currentIndex;
-        if (state.userAnswers[idx] === null && !state.isFinished) {
-            state.userAnswers[idx] = -1;
-            updateMessage('⏰ 答题超时！');
-            renderQuestion(idx);
-            const allAnswered = state.userAnswers.every(a => a !== null);
-            if (allAnswered) {
-                showFinishScreen();
-            } else if (idx < state.questions.length - 1) {
-                state.currentIndex++;
-                renderQuestion(state.currentIndex);
-                updateProgressAndScore();
-                resetTimer();
-                prevBtn.disabled = (state.currentIndex === 0);
-            } else {
-                showFinishScreen();
-            }
-        }
-    }
-
-    // ================================================================
-    //  UI 更新辅助
-    // ================================================================
-    function updateProgressAndScore() {
-        progressText.textContent = `${state.currentIndex + 1} / ${state.questions.length}`;
-        roundScoreEl.textContent = state.roundScore;
-        const user = getCurrentUser();
-        totalScore.textContent = user ? user.totalScore : 0;
-    }
-
-    function updateMessage(msg) {
-        state.message = msg;
-        messageBox.textContent = msg;
-    }
-
-    // ================================================================
-    //  排行榜 & 证书
-    // ================================================================
-    function renderRanking() {
-        const ranking = getRanking();
-        const currentUser = getCurrentUser();
-        const username = currentUser ? currentUser.username : '';
-
-        if (ranking.length === 0) {
-            rankList.innerHTML = '<div class="rank-empty">暂无排行数据</div>';
-            return;
-        }
-
-        let html = '';
-        ranking.forEach((item, index) => {
-            const isMe = item.username === username;
-            html += `
-                <div class="rank-item ${isMe ? 'me' : ''}" onclick="showCertificate('${item.username}')">
-                    <span class="rank-num">${index + 1}</span>
-                    <span class="rank-name">${item.username} ${isMe ? '👤' : ''}</span>
-                    <span class="rank-score">${item.totalScore} 分</span>
-                    <span class="cert-badge">📜</span>
+                <div class="mb-6">
+                    <label class="block text-gray-700 mb-2 font-medium">登录密码</label>
+                    <input type="password" id="loginPwd" placeholder="输入注册设置的密码" class="w-full border border-gray-300 rounded-lg px-4 py-3">
                 </div>
-            `;
-        });
-        rankList.innerHTML = html;
-    }
+                <button onclick="userLogin()" class="w-full bg-primary text-white py-3 rounded-lg font-medium text-base">登录答题</button>
+                <div class="mt-3 text-center">
+                    <span class="forgot-pwd-link" onclick="forgotPassword()">🔑 忘记密码？</span>
+                </div>
+                <div class="mt-2 text-center">
+                    <button onclick="switchPage('registerPage')" class="text-primary">没有账号？去注册</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // 显示证书
-    function showCertificate(username) {
-        const store = getStorage();
-        const user = store.users[username];
-        if (!user) return;
+    <!-- ======== 注册页 ======== -->
+    <div id="registerPage" class="page active">
+        <div class="max-w-md mx-auto pt-6 p-5">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-[22px] font-bold text-primary text-center mb-6">战队答题闯关 注册</h2>
+                <div class="mb-5">
+                    <label class="block text-gray-700 mb-2 font-medium">选择所属战队</label>
+                    <select id="unitSelect" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                        <option value="">请选择战队</option>
+                        <option value="400战队">400战队</option>
+                        <option value="055战队">055战队</option>
+                        <option value="114战队">114战队</option>
+                        <option value="343战队">343战队</option>
+                        <option value="霞光战队">霞光战队</option>
+                        <option value="神秘小分队">神秘小分队</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2 font-medium">填写姓名</label>
+                    <input type="text" id="userName" placeholder="请输入姓名" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                    <p class="name-hint">⚠️ 姓名将作为您的唯一登录凭证，不可与已注册用户重名</p>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 mb-2 font-medium">设置登录密码</label>
+                    <input type="password" id="userPwd" placeholder="自定义登录密码，下次登录使用" class="w-full border border-gray-300 rounded-lg px-4 py-3">
+                </div>
+                <button onclick="userRegister()" class="w-full bg-primary text-white py-3 rounded-lg font-medium text-base">注册账号</button>
+                <div class="mt-4 text-center">
+                    <button onclick="switchPage('loginPage')" class="text-primary">已有账号？去登录</button>
+                    <span class="mx-2">|</span>
+                    <button onclick="switchPage('rankPage')" class="text-gray-500">查看排行榜</button>
+                    <span class="mx-2">|</span>
+                    <button onclick="switchPage('adminLogin')" class="text-gray-500">管理员入口</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        currentCertUser = username;
-        certName.textContent = username;
-        certScore.textContent = user.totalScore || 0;
+    <!-- ======== 主菜单页 ======== -->
+    <div id="mainPage" class="page">
+        <div class="max-w-md mx-auto pt-3 p-5">
+            <div class="bg-white rounded-xl shadow-md p-5 mb-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm text-gray-500">欢迎，</p>
+                        <p class="font-bold text-lg text-primary" id="mainUserName">--</p>
+                        <p class="text-xs text-gray-400" id="mainUserUnit">--</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-500">总积分</p>
+                        <p class="text-2xl font-bold text-primary" id="mainTotalScore">0</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-3 text-xs text-gray-500 flex-wrap">
+                    <span>🔥 热身: <b id="mainWarmup">0</b></span>
+                    <span>⚔️ 排位: <b id="mainRank">0</b></span>
+                    <span>🏆 挑战: <b id="mainChallenge">0</b></span>
+                    <span class="ml-auto">排位剩余: <b id="mainRankRemain">3</b>次</span>
+                </div>
+            </div>
 
-        // 根据积分生成不同评语
-        const score = user.totalScore || 0;
-        if (score >= 80) {
-            certDesc.textContent = '恭喜你完成党史知识学习，展现了卓越的理论素养和深厚的历史底蕴！';
-        } else if (score >= 40) {
-            certDesc.textContent = '恭喜你完成党史知识学习，展现了良好的理论素养和学习热情！';
-        } else if (score >= 20) {
-            certDesc.textContent = '恭喜你完成党史知识学习，继续保持学习热情，不断进步！';
-        } else {
-            certDesc.textContent = '恭喜你完成党史知识学习，愿你在党史学习中不断汲取奋进力量！';
-        }
+            <div class="grid grid-cols-1 gap-4">
+                <div class="mode-card" onclick="enterMode('warmup')">
+                    <div class="flex justify-between items-center">
+                        <div><span class="text-xl mr-2">🔥</span><span class="font-bold text-base">热身赛</span><span class="badge ml-2">练习</span></div>
+                        <span class="text-sm text-gray-400">10题 · 100分</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">不限次数 · 记录最高分 · 每日更新题库</p>
+                    <div class="mt-2 text-xs text-gray-400" id="warmupStatus">今日最高: --</div>
+                </div>
 
-        // 生成日期
-        const now = new Date();
-        certDate.textContent = now.getFullYear() + '-' +
-            String(now.getMonth() + 1).padStart(2, '0') + '-' +
-            String(now.getDate()).padStart(2, '0');
+                <div class="mode-card" onclick="enterMode('ranked')">
+                    <div class="flex justify-between items-center">
+                        <div><span class="text-xl mr-2">⚔️</span><span class="font-bold text-base">排位赛</span><span class="badge ml-2">竞技</span></div>
+                        <span class="text-sm text-gray-400">15题 · 150分</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">每日3次 · 连击加分 · 20秒限时</p>
+                    <div class="mt-2 text-xs text-gray-400" id="rankedStatus">今日剩余: 3次 | 最高: --</div>
+                </div>
 
-        certOverlay.classList.add('show');
-    }
+                <div class="mode-card" onclick="enterMode('challenge')">
+                    <div class="flex justify-between items-center">
+                        <div><span class="text-xl mr-2">🏆</span><span class="font-bold text-base">挑战赛</span><span class="badge ml-2">精英</span></div>
+                        <span class="text-sm text-gray-400">20题 · 200分</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">每日1次 · 答错即止 · 连击倍率 · 15秒限时</p>
+                    <div class="mt-2 text-xs text-gray-400" id="challengeStatus">今日已用: 0/1 | 最高: --</div>
+                </div>
+            </div>
 
-    // 关闭证书
-    function closeCert(e) {
-        if (e && e.target !== e.currentTarget) return;
-        certOverlay.classList.remove('show');
-    }
+            <div class="mt-5 grid grid-cols-2 gap-3">
+                <button onclick="switchPage('rankPage')" class="bg-white rounded-xl shadow p-4 text-center border border-gray-200">
+                    <i class="fa fa-trophy text-2xl text-yellow-500"></i><p class="text-sm font-medium mt-1">总榜排名</p>
+                </button>
+                <button onclick="switchPage('rankPage'); setRankFilter('unit')" class="bg-white rounded-xl shadow p-4 text-center border border-gray-200">
+                    <i class="fa fa-users text-2xl text-primary"></i><p class="text-sm font-medium mt-1">战队排名</p>
+                </button>
+            </div>
 
-    // 下载证书 (保存为图片)
-    function downloadCert() {
-        const card = document.getElementById('certCard');
-        // 使用 html2canvas 生成图片 (通过CDN加载)
-        if (typeof html2canvas === 'undefined') {
-            // 动态加载 html2canvas
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-            script.onload = () => {
-                generateAndDownload(card);
-            };
-            document.head.appendChild(script);
-        } else {
-            generateAndDownload(card);
-        }
-    }
+            <div class="mt-4 text-center">
+                <button onclick="logoutUser()" class="text-xs text-gray-400">退出登录</button>
+            </div>
+        </div>
+    </div>
 
-    function generateAndDownload(element) {
-        html2canvas(element, {
-            scale: 2,
-            backgroundColor: '#fef7e6',
-            borderRadius: '32px',
-            useCORS: true,
-            allowTaint: true,
-            logging: false
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `党史学习证书_${currentCertUser || '学员'}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }).catch(err => {
-            alert('生成证书图片失败，请尝试截图保存。');
-            console.error(err);
-        });
-    }
+    <!-- ======== 答题页 ======== -->
+    <div id="quizPage" class="page quiz-mode">
+        <div class="max-w-md mx-auto pt-2 p-5">
+            <div class="bg-white rounded-xl shadow-md p-5">
+                <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <span class="font-bold text-primary" id="quizModeLabel">热身赛</span>
+                        <span class="text-sm text-gray-400 ml-2">第 <span id="currentNum">1</span>/<span id="totalNum">10</span> 题</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="comboDisplay" class="combo-display hidden">🔥 连击 x0</span>
+                        <span class="text-sm">得分: <b id="nowScore">0</b></span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mb-3">
+                    <div id="timerArea" class="hidden">
+                        <span class="timer-ring" id="timerRing">20</span>
+                        <span class="text-xs text-gray-400 ml-1">秒</span>
+                    </div>
+                    <div id="remainInfo" class="text-xs text-gray-400 ml-auto"></div>
+                </div>
+                <h3 id="questionText" class="text-lg font-medium mb-4 leading-relaxed"></h3>
+                <div id="optionBox" class="space-y-3 mb-4"></div>
+                <div id="tipBox" class="hidden rounded-lg p-3 mb-3 text-sm"><p id="tipText"></p></div>
+                <button id="nextBtn" onclick="nextQuestion()" class="w-full bg-gray-400 text-white py-3 rounded-lg font-medium disabled:opacity-60" disabled>下一题</button>
+                <button onclick="quitQuiz()" class="w-full mt-2 text-xs text-gray-400 py-1">退出答题</button>
+            </div>
+        </div>
+    </div>
 
-    // ================================================================
-    //  事件绑定 & 初始化
-    // ================================================================
+    <!-- ======== 结果页 ======== -->
+    <div id="resultPage" class="page quiz-mode">
+        <div class="max-w-md mx-auto pt-6 p-5 text-center">
+            <div class="bg-white rounded-xl shadow-md p-8">
+                <i class="fa fa-trophy text-[60px] text-yellow-500 mb-4"></i>
+                <h2 class="text-xl font-bold mb-2" id="resultTitle">闯关完成！</h2>
+                <p class="text-gray-600 mb-1">姓名：<span id="resName"></span></p>
+                <p class="text-gray-600 mb-1">战队：<span id="resUnit"></span></p>
+                <p class="text-gray-600 mb-4">模式：<span id="resMode"></span></p>
+                <p class="text-[32px] font-bold text-primary mb-2">得分：<span id="totalScore">0</span></p>
+                <p class="text-sm text-gray-400 mb-6" id="resultDetail"></p>
+                <div class="space-y-3">
+                    <button onclick="backToMain()" class="w-full bg-primary text-white py-3 rounded-lg">返回主页</button>
+                    <button onclick="switchPage('rankPage')" class="w-full border border-primary text-primary py-3 rounded-lg">查看排行榜</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    nextBtn.addEventListener('click', goToNext);
-    prevBtn.addEventListener('click', goToPrev);
-    restartBtn.addEventListener('click', restartRound);
-    restartFromFinishBtn.addEventListener('click', restartRound);
+    <!-- ======== 排行榜页 ======== -->
+    <div id="rankPage" class="page">
+        <div class="max-w-md mx-auto pt-3 p-5">
+            <div class="bg-white rounded-xl shadow-md p-5">
+                <h2 class="text-xl font-bold text-primary text-center mb-4">🏅 排行榜</h2>
+                <div class="flex flex-wrap gap-2 mb-4 justify-center">
+                    <span class="rank-tab active" data-rank="total" onclick="setRankFilter('total')">总榜</span>
+                    <span class="rank-tab" data-rank="unit" onclick="setRankFilter('unit')">战队榜</span>
+                    <span class="rank-tab" data-rank="month" onclick="setRankFilter('month')">月榜</span>
+                    <span class="rank-tab" data-rank="week" onclick="setRankFilter('week')">周榜</span>
+                </div>
+                <div id="teamSelector" class="hidden mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">选择战队：</label>
+                    <select id="selectedTeam" class="w-full border rounded px-3 py-2" onchange="renderRank()"></select>
+                </div>
+                <div id="rankList" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
+                <div id="teamTotalRank" class="mt-6 hidden">
+                    <div class="rank-section-title">🏢 战队总积分排行</div>
+                    <div id="teamTotalList" class="space-y-2"></div>
+                </div>
+                <button onclick="switchPage('mainPage')" class="w-full mt-4 border border-gray-300 py-3 rounded-lg">返回主页</button>
+            </div>
+        </div>
+    </div>
 
-    loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
-    registerPassword.addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
+    <!-- ======== 管理员登录 ======== -->
+    <div id="adminLogin" class="page">
+        <div class="max-w-md mx-auto pt-6 p-5">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-center mb-6">管理员登录</h2>
+                <div class="mb-5">
+                    <label class="block mb-2">管理员密码</label>
+                    <input type="password" id="adminPwd" placeholder="请输入管理员密码" class="w-full border rounded-lg px-4 py-3">
+                </div>
+                <button onclick="adminLoginCheck()" class="w-full bg-primary text-white py-3 rounded-lg mb-4">登录后台</button>
+                <button onclick="switchPage('registerPage')" class="w-full border py-3 rounded-lg">返回首页</button>
+            </div>
+        </div>
+    </div>
 
-    // 点击弹窗外部关闭
-    certOverlay.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeCert();
-        }
-    });
+    <!-- ======== 管理员后台 ======== -->
+    <div id="adminPage" class="page">
+        <div class="max-w-md mx-auto pt-3 p-5 space-y-4">
+            <!-- 赛制开关 -->
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="font-bold text-lg mb-3">⚙️ 赛制开关</h3>
+                <div class="space-y-2">
+                    <div class="admin-toggle"><span class="text-sm">🔥 热身赛</span><input type="checkbox" id="toggleWarmup" checked onchange="saveAdminConfig()"><span class="text-xs text-gray-400" id="toggleWarmupLabel">开启</span></div>
+                    <div class="admin-toggle"><span class="text-sm">⚔️ 排位赛</span><input type="checkbox" id="toggleRanked" checked onchange="saveAdminConfig()"><span class="text-xs text-gray-400" id="toggleRankedLabel">开启</span></div>
+                    <div class="admin-toggle"><span class="text-sm">🏆 挑战赛</span><input type="checkbox" id="toggleChallenge" checked onchange="saveAdminConfig()"><span class="text-xs text-gray-400" id="toggleChallengeLabel">开启</span></div>
+                    <hr class="my-2">
+                    <div class="admin-toggle"><span class="text-sm">⏱️ 限时功能</span><input type="checkbox" id="toggleTimer" checked onchange="saveAdminConfig()"><span class="text-xs text-gray-400" id="toggleTimerLabel">开启</span></div>
+                    <div class="admin-toggle"><span class="text-sm">🔗 连击功能</span><input type="checkbox" id="toggleCombo" checked onchange="saveAdminConfig()"><span class="text-xs text-gray-400" id="toggleComboLabel">开启</span></div>
+                </div>
+            </div>
 
-    (function checkAutoLogin() {
-        const store = getStorage();
-        if (store.currentUser && store.users[store.currentUser]) {
-            enterMainApp(store.currentUser);
-        }
-    })();
+            <!-- 音效选择 -->
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="font-bold text-lg mb-3">🔊 连击音效风格</h3>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <select id="soundEffectSelect" class="border rounded px-3 py-2 text-sm flex-1" onchange="saveAdminConfig(); previewSound()">
+                        <option value="crisp">🔔 清脆叮</option>
+                        <option value="deep">🥁 低沉嘭</option>
+                        <option value="electronic">⚡ 电子音</option>
+                    </select>
+                    <button onclick="previewSound()" class="sound-preview-btn">试听</button>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">选择连击触发时的音效风格</p>
+            </div>
 
-    window.switchAuthTab = switchAuthTab;
-    window.handleLogin = handleLogin;
-    window.handleRegister = handleRegister;
-    window.handleLogout = handleLogout;
-    window.showCertificate = showCertificate;
-    window.closeCert = closeCert;
-    window.downloadCert = downloadCert;
-</script>
-</body>
-</html>
+            <!-- 用户管理 -->
+            <div class="bg-white rounded-xl shadow p-5">
+                <h3 class="font-bold text-lg mb-3">👥 用户管理</h3>
+                <div class="user-search-box">
+                    <input type="text" id="userSearchInput" placeholder="🔍 搜索姓名或战队..." oninput="renderAdminData()">
+                    <button onclick="document.getElementById('userSearchInput').value=''; renderAdminData();" class="clear-search-btn">清除</button>
+                </div>
+                <div id="userAllList" class="max-h-[30vh] overflow-y-auto space-y-2 text-sm mb-4"></div>
+                <button onclick="clearAllUser()" class="w-full bg-danger text-white py-2 rounded">清空所有用户数据</button>
+            </div>
+
+            <button onclick="logoutAdmin()" class="w-full border py-3 rounded-lg">退出后台</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  前端内置题库（已移除后端导入功能）
+        // ============================================================
+        const QUIZ_DATA = {
+            warmup: [
+                { q: "1. 中国共产党诞生的年份是？", a: "B", opt: { A: "1919年", B: "1921年", C: "1927年", D: "1949年" } },
+                { q: "2. 标志人民军队诞生的起义是？", a: "A", opt: { A: "南昌起义", B: "秋收起义", C: "广州起义", D: "平江起义" } },
+                { q: "3. 长征胜利结束于哪一年？", a: "C", opt: { A: "1934年", B: "1935年", C: "1936年", D: "1937年" } },
+                { q: "4. 确立毛泽东领导地位的会议是？", a: "B", opt: { A: "中共一大", B: "遵义会议", C: "瓦窑堡会议", D: "中共七大" } },
+                { q: "5. 全面抗日战争爆发的标志是？", a: "A", opt: { A: "七七卢沟桥事变", B: "九一八事变", C: "西安事变", D: "淞沪会战" } },
+                { q: "6. 新中国成立时间是？", a: "C", opt: { A: "1945年8月15日", B: "1945年9月2日", C: "1949年10月1日", D: "1950年10月1日" } },
+                { q: "7. 抗美援朝志愿军出兵年份？", a: "B", opt: { A: "1949年", B: "1950年", C: "1951年", D: "1952年" } },
+                { q: "8. 改革开放开端是哪次会议？", a: "D", opt: { A: "中共八大", B: "中共九大", C: "中共十一大", D: "十一届三中全会" } },
+                { q: "9. 党在新时代的强军目标不包含？", a: "C", opt: { A: "听党指挥", B: "能打胜仗", C: "规模最大", D: "作风优良" } },
+                { q: "10. 党的根本宗旨是？", a: "A", opt: { A: "全心全意为人民服务", B: "实现共同富裕", C: "建设现代化强国", D: "实现民族复兴" } }
+            ],
+            ranked: [
+                { q: "1. 他领导第四军独立团连克汀泗桥和贺胜桥，被誉为\"北伐名将\"，第四军也因此被称为\"铁军\"。\"他\"是？", a: "B", opt: { A: "朱德", B: "叶挺", C: "贺龙", D: "刘伯承" } },
+                { q: "2. 下列毛泽东诗词反映长征史实的是？", a: "D", opt: { A
